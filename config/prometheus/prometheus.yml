@@ -1,0 +1,110 @@
+# Prometheus configuration for RRRalgorithms
+# Monitors all trading system components
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'rrr-algorithms'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load alerting rules
+rule_files:
+  - '/etc/prometheus/rules/*.yml'
+
+# Scrape configurations
+scrape_configs:
+  # Neural Network Service
+  - job_name: 'neural-network'
+    static_configs:
+      - targets: ['neural-network:8000']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Data Pipeline Service
+  - job_name: 'data-pipeline'
+    static_configs:
+      - targets: ['data-pipeline:8001']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Trading Engine Service (Critical - low interval)
+  - job_name: 'trading-engine'
+    static_configs:
+      - targets: ['trading-engine:8002']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    scrape_timeout: 3s
+
+  # Risk Management Service (Critical - low interval)
+  - job_name: 'risk-management'
+    static_configs:
+      - targets: ['risk-management:8003']
+    metrics_path: '/metrics'
+    scrape_interval: 5s
+    scrape_timeout: 3s
+
+  # Backtesting Service
+  - job_name: 'backtesting'
+    static_configs:
+      - targets: ['backtesting:8004']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # API Integration Service
+  - job_name: 'api-integration'
+    static_configs:
+      - targets: ['api-integration:8005']
+    metrics_path: '/metrics'
+    scrape_interval: 10s
+    scrape_timeout: 5s
+
+  # Quantum Optimization Service
+  - job_name: 'quantum-optimization'
+    static_configs:
+      - targets: ['quantum-optimization:8006']
+    metrics_path: '/metrics'
+    scrape_interval: 30s
+    scrape_timeout: 10s
+
+  # Monitoring Dashboard
+  - job_name: 'monitoring-dashboard'
+    static_configs:
+      - targets: ['monitoring:8007']
+    metrics_path: '/metrics'
+    scrape_interval: 15s
+    scrape_timeout: 5s
+
+  # PostgreSQL Exporter
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres-exporter:9187']
+    scrape_interval: 30s
+
+  # Redis Exporter (if used for caching)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+    scrape_interval: 30s
+
+  # Node Exporter (system metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+    scrape_interval: 30s
+
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+    scrape_interval: 15s

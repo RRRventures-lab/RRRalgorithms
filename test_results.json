@@ -1,0 +1,52 @@
+{
+  "timestamp": "2025-10-13T00:52:42.842726",
+  "summary": {
+    "total": 8,
+    "passed": 2,
+    "warnings": 5,
+    "failed": 1
+  },
+  "results": {
+    "Database Connection": {
+      "status": "PASS"
+    },
+    "Secrets Management": {
+      "status": "WARN",
+      "issues": [
+        "Missing API keys: POLYGON_API_KEY"
+      ]
+    },
+    "Configuration": {
+      "status": "FAIL",
+      "error": "'Settings' object has no attribute 'TRADING_MODE'"
+    },
+    "Market Data": {
+      "status": "WARN",
+      "issues": [
+        "Market data modules not found: No module named 'src.data_pipeline.polygon_client'"
+      ]
+    },
+    "Trading Engine": {
+      "status": "WARN",
+      "issues": [
+        "Missing modules: src.trading.paper_trader, src.trading.order_manager, src.trading.position_manager"
+      ]
+    },
+    "Risk Management": {
+      "status": "PASS"
+    },
+    "Monitoring": {
+      "status": "WARN",
+      "issues": [
+        "Grafana not reachable"
+      ]
+    },
+    "API Connectivity": {
+      "status": "WARN",
+      "issues": [
+        "Polygon API returned 404"
+      ]
+    }
+  },
+  "ready_for_trading": false
+}

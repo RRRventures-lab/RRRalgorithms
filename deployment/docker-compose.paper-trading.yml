@@ -1,0 +1,104 @@
+version: '3.8'
+
+# Paper Trading Mode Override
+# This file overrides docker-compose.yml settings for safe paper trading
+
+services:
+  neural-network:
+    environment:
+      - PAPER_TRADING_MODE=true
+      - LOG_LEVEL=INFO
+      - MODEL_CHECKPOINT_DIR=/app/checkpoints
+    volumes:
+      - ./results/paper-trading/models:/app/checkpoints
+
+  data-pipeline:
+    environment:
+      - PAPER_TRADING_MODE=true
+      - USE_MOCK_DATA=false  # Use real market data for testing
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./results/paper-trading/data:/app/data
+
+  trading-engine:
+    environment:
+      - PAPER_TRADING_MODE=true  # CRITICAL: Prevents real orders
+      - EXCHANGE_MODE=paper
+      - LOG_LEVEL=INFO
+      - INITIAL_CAPITAL=100000  # Starting capital for paper trading
+      - MAX_POSITION_SIZE=0.20  # Max 20% per position
+      - ENABLE_LIVE_TRADING=false  # Double-check: no live trading
+    volumes:
+      - ./results/paper-trading/orders:/app/orders
+      - ./results/paper-trading/trades:/app/trades
+
+  risk-management:
+    environment:
+      - PAPER_TRADING_MODE=true
+      - DAILY_LOSS_LIMIT=-2000  # Max $2k loss per day
+      - MAX_PORTFOLIO_RISK=0.05  # 5% portfolio risk
+      - KELLY_FRACTION=0.25  # Conservative Kelly
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./results/paper-trading/risk:/app/risk
+
+  backtesting:
+    environment:
+      - PAPER_TRADING_MODE=true
+      - LOG_LEVEL=INFO
+
+  api-integration:
+    environment:
+      - PAPER_TRADING_MODE=true
+      - COINBASE_SANDBOX=true  # Use Coinbase sandbox API
+      - LOG_LEVEL=INFO
+
+  quantum-optimization:
+    environment:
+      - PAPER_TRADING_MODE=true
+      - LOG_LEVEL=INFO
+
+  monitoring:
+    environment:
+      - PAPER_TRADING_MODE=true
+      - LOG_LEVEL=INFO
+    volumes:
+      - ./results/paper-trading/logs:/app/logs
+
+  # Grafana - Add paper trading dashboards
+  grafana:
+    environment:
+      - GF_DASHBOARDS_DEFAULT_HOME_DASHBOARD_PATH=/etc/grafana/provisioning/dashboards/trading-performance.json
+      - GF_AUTH_ANONYMOUS_ENABLED=true  # Allow anonymous access for testing
+      - GF_AUTH_ANONYMOUS_ORG_ROLE=Viewer
+    volumes:
+      - ./monitoring/grafana/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana-data-paper:/var/lib/grafana
+
+  # Prometheus - Shorter retention for paper trading
+  prometheus:
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=7d'  # 7 days for paper trading
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alert_rules:/etc/prometheus/alert_rules:ro
+      - prometheus-data-paper:/prometheus
+
+volumes:
+  grafana-data-paper:
+    driver: local
+  prometheus-data-paper:
+    driver: local
+
+# Network configuration (same as main)
+networks:
+  rrr-backend:
+  rrr-frontend:
+  rrr-data:
+  rrr-trading:
+  rrr-ml:
+  rrr-monitoring:

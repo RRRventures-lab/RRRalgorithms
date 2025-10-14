@@ -1,0 +1,163 @@
+# RRRalgorithms Production/Cloud Configuration
+# Used for Docker deployment, cloud services, and live trading
+# Requires proper API keys and cloud infrastructure
+
+environment: production
+debug: false
+
+# Database Configuration (PostgreSQL/Supabase)
+database:
+  type: postgresql
+  host: ${DATABASE_HOST}
+  port: 5432
+  database: ${DATABASE_NAME}
+  user: ${DATABASE_USER}
+  password: ${DATABASE_PASSWORD}
+  ssl: true
+  pool_size: 20
+  max_overflow: 40
+  echo: false
+
+# Cache Configuration (Redis)
+cache:
+  type: redis
+  host: ${REDIS_HOST}
+  port: 6379
+  db: 0
+  password: ${REDIS_PASSWORD}
+  ttl: 300
+  max_connections: 50
+
+# Data Pipeline Configuration
+data_pipeline:
+  mode: live
+  mock:
+    enabled: false
+  historical:
+    enabled: true
+    data_dir: /data/historical
+  live:
+    enabled: true
+    websocket_reconnect: true
+    max_reconnect_attempts: 10
+
+# Trading Engine Configuration
+trading:
+  mode: ${TRADING_MODE}  # paper or live
+  exchange: coinbase
+  initial_capital: ${INITIAL_CAPITAL}
+  max_position_size: 0.10
+  max_daily_loss: 0.03
+  order_timeout: 60
+  rate_limit_per_second: 10
+
+# Risk Management
+risk:
+  enabled: true
+  max_portfolio_volatility: 0.20
+  max_drawdown: 0.10
+  position_sizing: kelly
+  kelly_fraction: 0.25
+  circuit_breaker:
+    enabled: true
+    max_loss_threshold: 0.05
+    cooldown_minutes: 60
+
+# Neural Network Configuration (Full models)
+neural_network:
+  mode: full
+  model_type: transformer
+  device: cuda  # cuda or cpu
+  batch_size: 64
+  feature_count: 128
+  lookback_window: 100
+  prediction_horizons: [1, 5, 15, 60]
+  model_path: /models/checkpoints
+  mlflow:
+    enabled: true
+    tracking_uri: ${MLFLOW_TRACKING_URI}
+
+# Monitoring Configuration (Prometheus + Grafana)
+monitoring:
+  type: prometheus
+  log_level: INFO
+  log_file: /logs/trading.log
+  prometheus:
+    enabled: true
+    port: 9090
+    push_gateway: ${PROMETHEUS_PUSH_GATEWAY}
+  grafana:
+    enabled: true
+    port: 3000
+  metrics:
+    enabled: true
+    update_interval: 1
+  alerts:
+    enabled: true
+    channels:
+      - email
+      - slack
+
+# API Integrations
+apis:
+  coinbase:
+    enabled: true
+    api_key: ${COINBASE_API_KEY}
+    api_secret: ${COINBASE_API_SECRET}
+    use_sandbox: false
+  polygon:
+    enabled: true
+    api_key: ${POLYGON_API_KEY}
+  perplexity:
+    enabled: true
+    api_key: ${PERPLEXITY_API_KEY}
+  supabase:
+    enabled: true
+    url: ${SUPABASE_URL}
+    key: ${SUPABASE_SERVICE_KEY}
+
+# Backtesting Configuration
+backtesting:
+  enabled: true
+  data_source: database
+  parallel_workers: 8
+  chunk_size: 10000
+
+# Service Configuration (Docker/K8s)
+services:
+  run_mode: separate_processes
+  enabled_services:
+    - data_pipeline
+    - neural_network
+    - trading_engine
+    - risk_management
+    - backtesting
+    - api_integration
+    - quantum_optimization
+    - monitoring
+  health_check:
+    enabled: true
+    interval_seconds: 30
+  restart_policy: on-failure
+
+# Resource Limits (Cloud)
+resources:
+  max_memory_mb: 8192
+  max_cpu_percent: 80
+  worker_threads: 8
+  async_workers: 16
+
+# Security
+security:
+  api_rate_limiting: true
+  encrypt_logs: true
+  vault_enabled: ${VAULT_ENABLED}
+  vault_address: ${VAULT_ADDRESS}
+
+# Development Settings
+development:
+  auto_reload: false
+  show_sql: false
+  profile: true
+  test_mode: false
+

@@ -1,0 +1,12 @@
+# Supabase Integration Requirements
+# Install with: pip install -r requirements-supabase.txt
+
+# Supabase Python Client
+supabase>=2.0.0
+
+# PostgreSQL adapter (for direct psql access if needed)
+psycopg2-binary>=2.9.0
+
+# Already included in main requirements but listed here for reference:
+# python-dotenv>=1.0.0
+# requests>=2.31.0

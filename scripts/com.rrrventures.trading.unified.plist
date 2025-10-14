@@ -1,0 +1,66 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.rrrventures.trading.unified</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Volumes/Lexar/RRRVentures/RRRalgorithms/venv/bin/python</string>
+        <string>/Volumes/Lexar/RRRVentures/RRRalgorithms/src/main_unified.py</string>
+        <string>--mode</string>
+        <string>paper</string>
+        <string>--log-level</string>
+        <string>INFO</string>
+    </array>
+    
+    <key>WorkingDirectory</key>
+    <string>/Volumes/Lexar/RRRVentures/RRRalgorithms</string>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <dict>
+        <key>SuccessfulExit</key>
+        <false/>
+        <key>Crashed</key>
+        <true/>
+    </dict>
+    
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+    
+    <key>StandardOutPath</key>
+    <string>/Volumes/Lexar/RRRVentures/RRRalgorithms/logs/system/stdout.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Volumes/Lexar/RRRVentures/RRRalgorithms/logs/system/stderr.log</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>TRADING_HOME</key>
+        <string>/Volumes/Lexar/RRRVentures/RRRalgorithms</string>
+        <key>DATABASE_TYPE</key>
+        <string>sqlite</string>
+        <key>DATABASE_PATH</key>
+        <string>/Volumes/Lexar/RRRVentures/RRRalgorithms/data/db/trading.db</string>
+        <key>PYTHONPATH</key>
+        <string>/Volumes/Lexar/RRRVentures/RRRalgorithms/src</string>
+        <key>SQLITE_TMPDIR</key>
+        <string>/tmp</string>
+    </dict>
+    
+    <key>SoftResourceLimits</key>
+    <dict>
+        <key>NumberOfFiles</key>
+        <integer>4096</integer>
+    </dict>
+    
+    <key>Nice</key>
+    <integer>-5</integer>
+    
+</dict>
+</plist>
+

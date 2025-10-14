@@ -1,0 +1,81 @@
+{
+  "ticker": "X:ADAUSD",
+  "months": 24,
+  "start_date": "2023-10-22T20:21:55.609460",
+  "end_date": "2025-10-11T20:21:55.609460",
+  "overall_elapsed_minutes": 4.35,
+  "overall_elapsed_hours": 0.07,
+  "total_bars_downloaded": 1324087,
+  "total_errors": 0,
+  "successful_timeframes": 6,
+  "average_download_rate_bars_per_sec": 5075.54,
+  "timeframe_results": [
+    {
+      "timeframe": "1min",
+      "ticker": "X:ADAUSD",
+      "total_bars": 1025233,
+      "total_chunks": 24,
+      "errors": 0,
+      "elapsed_seconds": 50.41,
+      "elapsed_minutes": 0.84,
+      "status": "success",
+      "bars_per_second": 20337.6
+    },
+    {
+      "timeframe": "5min",
+      "ticker": "X:ADAUSD",
+      "total_bars": 207314,
+      "total_chunks": 24,
+      "errors": 0,
+      "elapsed_seconds": 42.41,
+      "elapsed_minutes": 0.71,
+      "status": "success",
+      "bars_per_second": 4888.8
+    },
+    {
+      "timeframe": "15min",
+      "ticker": "X:ADAUSD",
+      "total_bars": 69189,
+      "total_chunks": 24,
+      "errors": 0,
+      "elapsed_seconds": 47.54,
+      "elapsed_minutes": 0.79,
+      "status": "success",
+      "bars_per_second": 1455.5
+    },
+    {
+      "timeframe": "1hr",
+      "ticker": "X:ADAUSD",
+      "total_bars": 17304,
+      "total_chunks": 24,
+      "errors": 0,
+      "elapsed_seconds": 36.32,
+      "elapsed_minutes": 0.61,
+      "status": "success",
+      "bars_per_second": 476.47
+    },
+    {
+      "timeframe": "4hr",
+      "ticker": "X:ADAUSD",
+      "total_bars": 4326,
+      "total_chunks": 24,
+      "errors": 0,
+      "elapsed_seconds": 32.16,
+      "elapsed_minutes": 0.54,
+      "status": "success",
+      "bars_per_second": 134.5
+    },
+    {
+      "timeframe": "1day",
+      "ticker": "X:ADAUSD",
+      "total_bars": 721,
+      "total_chunks": 24,
+      "errors": 0,
+      "elapsed_seconds": 27.02,
+      "elapsed_minutes": 0.45,
+      "status": "success",
+      "bars_per_second": 26.69
+    }
+  ],
+  "completed_at": "2025-10-11T20:26:16.491486"
+}

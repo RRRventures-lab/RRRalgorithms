@@ -1,0 +1,249 @@
+name: Test Suite
+
+on:
+  push:
+    branches: [ main, develop, 'worktrees/**' ]
+  pull_request:
+    branches: [ main, develop ]
+  schedule:
+    # Run tests daily at 2 AM UTC
+    - cron: '0 2 * * *'
+
+jobs:
+  test-neural-network:
+    name: Neural Network Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./worktrees/neural-network
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term \
+            --tb=short \
+            -v
+
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./worktrees/neural-network/coverage.xml
+          flags: neural-network
+          name: neural-network-coverage
+
+  test-trading-engine:
+    name: Trading Engine Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./worktrees/trading-engine
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-mock
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term \
+            --tb=short \
+            -v
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./worktrees/trading-engine/coverage.xml
+          flags: trading-engine
+
+  test-risk-management:
+    name: Risk Management Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./worktrees/risk-management
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov
+
+      - name: Run tests with coverage
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term \
+            --tb=short \
+            -v
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./worktrees/risk-management/coverage.xml
+          flags: risk-management
+
+  test-data-pipeline:
+    name: Data Pipeline Tests
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ./worktrees/data-pipeline
+
+    services:
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio
+
+      - name: Run tests with coverage
+        env:
+          REDIS_URL: redis://localhost:6379
+        run: |
+          pytest tests/ \
+            --cov=src \
+            --cov-report=xml \
+            --cov-report=term \
+            --tb=short \
+            -v
+
+      - name: Upload coverage
+        uses: codecov/codecov-action@v3
+        with:
+          file: ./worktrees/data-pipeline/coverage.xml
+          flags: data-pipeline
+
+  test-integration:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    needs: [test-neural-network, test-trading-engine, test-risk-management, test-data-pipeline]
+
+    services:
+      postgres:
+        image: timescale/timescaledb:latest-pg15
+        env:
+          POSTGRES_PASSWORD: test_password
+          POSTGRES_DB: rrr_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install all dependencies
+        run: |
+          pip install --upgrade pip
+          for dir in worktrees/*/; do
+            if [ -f "$dir/requirements.txt" ]; then
+              pip install -r "$dir/requirements.txt"
+            fi
+          done
+          pip install pytest pytest-asyncio pytest-timeout
+
+      - name: Run integration tests
+        env:
+          SUPABASE_URL: postgresql://postgres:test_password@localhost:5432/rrr_test
+          REDIS_URL: redis://localhost:6379
+          PAPER_TRADING_MODE: "true"
+        run: |
+          pytest tests/integration/ \
+            --timeout=300 \
+            --tb=short \
+            -v
+
+      - name: Integration test report
+        if: always()
+        uses: actions/upload-artifact@v3
+        with:
+          name: integration-test-results
+          path: tests/integration/results/
+
+  test-summary:
+    name: Test Summary
+    runs-on: ubuntu-latest
+    needs: [test-neural-network, test-trading-engine, test-risk-management, test-data-pipeline, test-integration]
+    if: always()
+
+    steps:
+      - name: Check test results
+        run: |
+          echo "All tests completed"
+          echo "Neural Network: ${{ needs.test-neural-network.result }}"
+          echo "Trading Engine: ${{ needs.test-trading-engine.result }}"
+          echo "Risk Management: ${{ needs.test-risk-management.result }}"
+          echo "Data Pipeline: ${{ needs.test-data-pipeline.result }}"
+          echo "Integration: ${{ needs.test-integration.result }}"

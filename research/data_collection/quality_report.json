@@ -1,0 +1,14 @@
+{
+  "timestamp": "2025-10-11T23:46:46.956977",
+  "stats": {
+    "total_rows": 52362,
+    "symbols_checked": 9,
+    "placeholders_found": 0,
+    "nulls_found": 0,
+    "duplicates_found": 0,
+    "outliers_found": 0,
+    "invalid_ohlc": 0,
+    "quality_score": 100.0
+  },
+  "issues": []
+}

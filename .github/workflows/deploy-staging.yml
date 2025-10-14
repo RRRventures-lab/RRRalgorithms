@@ -1,0 +1,250 @@
+name: Deploy to Staging (Paper Trading)
+
+on:
+  push:
+    branches: [ develop ]
+  workflow_dispatch:
+    inputs:
+      force_deploy:
+        description: 'Force deployment even if tests fail'
+        required: false
+        default: 'false'
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/rrr-trading
+
+jobs:
+  pre-deployment-checks:
+    name: Pre-Deployment Validation
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install --upgrade pip
+          pip install pyyaml requests psutil
+
+      - name: Run pre-flight checks
+        run: |
+          python scripts/deployment/pre-flight-check.py --environment staging
+
+      - name: Validate configuration
+        run: |
+          # Check docker-compose.yml is valid
+          docker-compose -f docker-compose.yml config > /dev/null
+
+          # Check paper trading override exists
+          if [ ! -f "docker-compose.paper-trading.yml" ]; then
+            echo "ERROR: Paper trading override not found"
+            exit 1
+          fi
+
+          docker-compose -f docker-compose.yml -f docker-compose.paper-trading.yml config > /dev/null
+
+      - name: Check required secrets
+        run: |
+          # Verify staging secrets are set
+          if [ -z "${{ secrets.STAGING_SUPABASE_URL }}" ]; then
+            echo "ERROR: STAGING_SUPABASE_URL not set"
+            exit 1
+          fi
+
+          if [ -z "${{ secrets.STAGING_COINBASE_API_KEY }}" ]; then
+            echo "WARNING: STAGING_COINBASE_API_KEY not set (using paper trading)"
+          fi
+
+  deploy-staging:
+    name: Deploy to Staging Environment
+    runs-on: ubuntu-latest
+    needs: pre-deployment-checks
+    environment:
+      name: staging
+      url: https://staging.rrr-trading.com
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up SSH
+        uses: webfactory/ssh-agent@v0.8.0
+        with:
+          ssh-private-key: ${{ secrets.STAGING_SSH_KEY }}
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull latest images
+        run: |
+          docker-compose -f docker-compose.yml pull
+
+      - name: Deploy to staging server
+        run: |
+          ssh -o StrictHostKeyChecking=no ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            cd /opt/rrr-trading
+
+            # Pull latest code
+            git fetch origin
+            git checkout develop
+            git pull origin develop
+
+            # Pull latest Docker images
+            docker-compose -f docker-compose.yml -f docker-compose.paper-trading.yml pull
+
+            # Stop existing services
+            docker-compose -f docker-compose.yml -f docker-compose.paper-trading.yml down
+
+            # Start services with paper trading mode
+            docker-compose -f docker-compose.yml -f docker-compose.paper-trading.yml up -d
+
+            # Wait for services to be healthy
+            sleep 30
+
+            # Check service health
+            docker-compose -f docker-compose.yml -f docker-compose.paper-trading.yml ps
+          EOF
+
+      - name: Run smoke tests
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            cd /opt/rrr-trading
+
+            # Check all services are running
+            SERVICES=$(docker-compose ps --services)
+            for service in $SERVICES; do
+              if ! docker-compose ps $service | grep -q "Up"; then
+                echo "ERROR: Service $service is not running"
+                exit 1
+              fi
+            done
+
+            # Test API endpoints
+            curl -f http://localhost:8000/health || exit 1
+            curl -f http://localhost:8001/health || exit 1
+            curl -f http://localhost:8002/health || exit 1
+
+            echo "All services healthy"
+          EOF
+
+  post-deployment-validation:
+    name: Post-Deployment Tests
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install test dependencies
+        run: |
+          pip install pytest requests
+
+      - name: Run integration tests against staging
+        env:
+          STAGING_URL: ${{ secrets.STAGING_URL }}
+        run: |
+          pytest tests/integration/ \
+            --base-url=$STAGING_URL \
+            --tb=short \
+            -v
+
+      - name: Test paper trading mode
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            cd /opt/rrr-trading
+
+            # Verify paper trading mode is enabled
+            if ! docker-compose logs trading-engine | grep -q "PAPER_TRADING_MODE: enabled"; then
+              echo "ERROR: Paper trading mode not enabled"
+              exit 1
+            fi
+
+            # Check no real orders were placed
+            if docker-compose logs trading-engine | grep -q "LIVE_ORDER_PLACED"; then
+              echo "ERROR: Live order detected in paper trading mode!"
+              exit 1
+            fi
+
+            echo "Paper trading mode verified"
+          EOF
+
+  monitoring-setup:
+    name: Configure Monitoring
+    runs-on: ubuntu-latest
+    needs: deploy-staging
+
+    steps:
+      - name: Configure Grafana dashboards
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            cd /opt/rrr-trading
+
+            # Import Grafana dashboards
+            for dashboard in monitoring/grafana/dashboards/*.json; do
+              curl -X POST \
+                -H "Content-Type: application/json" \
+                -H "Authorization: Bearer ${{ secrets.GRAFANA_API_KEY }}" \
+                -d @"$dashboard" \
+                http://localhost:3000/api/dashboards/db
+            done
+          EOF
+
+      - name: Configure alerts
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            cd /opt/rrr-trading
+
+            # Set up Prometheus alert rules
+            docker-compose restart prometheus
+
+            # Verify alerts are loaded
+            curl -f http://localhost:9090/api/v1/rules || exit 1
+          EOF
+
+  deployment-notification:
+    name: Deployment Notification
+    runs-on: ubuntu-latest
+    needs: [deploy-staging, post-deployment-validation, monitoring-setup]
+    if: always()
+
+    steps:
+      - name: Notify deployment status
+        run: |
+          STATUS="✅ SUCCESS"
+          if [ "${{ needs.deploy-staging.result }}" != "success" ]; then
+            STATUS="❌ FAILED"
+          fi
+
+          echo "Staging Deployment $STATUS"
+          echo "Environment: staging.rrr-trading.com"
+          echo "Mode: Paper Trading"
+          echo "Commit: ${{ github.sha }}"
+          echo "Branch: develop"
+
+      - name: Create deployment record
+        uses: actions/github-script@v6
+        with:
+          script: |
+            github.rest.repos.createDeployment({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              ref: context.sha,
+              environment: 'staging',
+              description: 'Paper trading deployment',
+              auto_merge: false,
+              required_contexts: []
+            })

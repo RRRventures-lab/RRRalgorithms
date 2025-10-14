@@ -1,0 +1,62 @@
+{
+  "mcpServers": {
+    "supabase": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-postgres",
+        "${SUPABASE_DB_URL}"
+      ],
+      "description": "Supabase (PostgreSQL) database for trade history, market data, and system state with real-time capabilities"
+    },
+    "github": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@modelcontextprotocol/server-github"
+      ],
+      "env": {
+        "GITHUB_PERSONAL_ACCESS_TOKEN": "${GITHUB_TOKEN}"
+      },
+      "description": "GitHub integration for code management, PRs, and issue tracking"
+    },
+    "coinbase": {
+      "command": "python3",
+      "args": [
+        "${PROJECT_ROOT}/worktrees/api-integration/coinbase/mcp_server.py"
+      ],
+      "env": {
+        "COINBASE_API_KEY": "${COINBASE_API_KEY}",
+        "COINBASE_API_SECRET": "${COINBASE_API_SECRET}",
+        "DATABASE_URL": "${DATABASE_URL}"
+      },
+      "description": "Coinbase Advanced Trade API for crypto market data and order execution"
+    },
+    "polygon": {
+      "command": "node",
+      "args": [
+        "${PROJECT_ROOT}/worktrees/api-integration/polygon/mcp-server.js"
+      ],
+      "env": {
+        "POLYGON_API_KEY": "${POLYGON_API_KEY}",
+        "REDIS_URL": "${REDIS_URL}"
+      },
+      "description": "Polygon.io market data integration (REST + WebSocket)"
+    },
+    "perplexity": {
+      "command": "node",
+      "args": [
+        "${PROJECT_ROOT}/worktrees/api-integration/perplexity/mcp-server.js"
+      ],
+      "env": {
+        "PERPLEXITY_API_KEY": "${PERPLEXITY_API_KEY}",
+        "CACHE_TTL": "300"
+      },
+      "description": "Perplexity AI for market sentiment and research intelligence"
+    },
+    "Figma Desktop": {
+      "url": "http://127.0.0.1:3845/mcp",
+      "description": "Figma Desktop MCP server for design integration, UI/UX assets, and design system synchronization"
+    }
+  }
+}

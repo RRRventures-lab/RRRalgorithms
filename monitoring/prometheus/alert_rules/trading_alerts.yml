@@ -1,0 +1,220 @@
+groups:
+  - name: trading_engine_alerts
+    interval: 10s
+    rules:
+      # Critical: Trading engine down
+      - alert: TradingEngineDown
+        expr: up{job="trading-engine"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: trading-engine
+        annotations:
+          summary: "Trading Engine is down"
+          description: "Trading Engine has been down for more than 30 seconds"
+
+      # Critical: Order execution failures
+      - alert: HighOrderFailureRate
+        expr: |
+          (
+            rate(trading_order_failures_total[5m])
+            /
+            rate(trading_orders_total[5m])
+          ) > 0.1
+        for: 2m
+        labels:
+          severity: critical
+          component: trading-engine
+        annotations:
+          summary: "High order failure rate detected"
+          description: "Order failure rate is {{ $value | humanizePercentage }} (threshold: 10%)"
+
+      # Warning: Slow order execution
+      - alert: SlowOrderExecution
+        expr: histogram_quantile(0.95, rate(trading_order_execution_duration_seconds_bucket[5m])) > 1.0
+        for: 5m
+        labels:
+          severity: warning
+          component: trading-engine
+        annotations:
+          summary: "Slow order execution detected"
+          description: "95th percentile order execution time is {{ $value }}s (threshold: 1s)"
+
+      # Critical: Position limit breach
+      - alert: PositionLimitBreached
+        expr: trading_current_position_value > trading_max_position_limit
+        for: 0s  # Immediate alert
+        labels:
+          severity: critical
+          component: risk-management
+        annotations:
+          summary: "Position limit breached"
+          description: "Current position {{ $value }} exceeds maximum limit"
+
+      # Warning: Approaching position limit
+      - alert: ApproachingPositionLimit
+        expr: trading_current_position_value > (trading_max_position_limit * 0.9)
+        for: 1m
+        labels:
+          severity: warning
+          component: risk-management
+        annotations:
+          summary: "Approaching position limit"
+          description: "Position is at {{ $value | humanizePercentage }} of maximum limit"
+
+      # Critical: Stop-loss not triggered
+      - alert: StopLossNotTriggered
+        expr: |
+          (trading_current_price - trading_entry_price) / trading_entry_price < -0.05
+          and
+          trading_stop_loss_triggered == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: risk-management
+        annotations:
+          summary: "Stop-loss should have triggered"
+          description: "Loss exceeds 5% but stop-loss has not triggered"
+
+      # Critical: API rate limit approaching
+      - alert: APIRateLimitApproaching
+        expr: api_rate_limit_remaining < 100
+        for: 1m
+        labels:
+          severity: warning
+          component: api-integration
+        annotations:
+          summary: "API rate limit approaching"
+          description: "Only {{ $value }} API calls remaining this minute"
+
+      # Critical: Paper trading mode disabled in staging
+      - alert: PaperTradingDisabled
+        expr: trading_paper_mode_enabled{environment="staging"} == 0
+        for: 0s
+        labels:
+          severity: critical
+          component: trading-engine
+        annotations:
+          summary: "CRITICAL: Paper trading disabled in staging!"
+          description: "Real trading may occur. Immediately enable paper trading mode."
+
+  - name: risk_management_alerts
+    interval: 15s
+    rules:
+      # Critical: Daily loss limit exceeded
+      - alert: DailyLossLimitExceeded
+        expr: risk_daily_pnl < risk_daily_loss_limit
+        for: 0s
+        labels:
+          severity: critical
+          component: risk-management
+        annotations:
+          summary: "Daily loss limit exceeded"
+          description: "Daily PnL {{ $value }} exceeds loss limit. All trading should halt."
+
+      # Warning: Approaching daily loss limit
+      - alert: ApproachingDailyLossLimit
+        expr: risk_daily_pnl < (risk_daily_loss_limit * 1.2)
+        for: 5m
+        labels:
+          severity: warning
+          component: risk-management
+        annotations:
+          summary: "Approaching daily loss limit"
+          description: "Daily PnL is {{ $value }}, approaching limit"
+
+      # Critical: VaR breach
+      - alert: VaRBreached
+        expr: risk_current_var > risk_var_limit
+        for: 1m
+        labels:
+          severity: critical
+          component: risk-management
+        annotations:
+          summary: "Value at Risk (VaR) limit breached"
+          description: "Current VaR {{ $value }} exceeds limit"
+
+      # Warning: Portfolio concentration
+      - alert: HighPortfolioConcentration
+        expr: risk_max_single_position_pct > 0.3
+        for: 10m
+        labels:
+          severity: warning
+          component: risk-management
+        annotations:
+          summary: "High portfolio concentration"
+          description: "Single position represents {{ $value | humanizePercentage }} of portfolio"
+
+      # Critical: Kelly criterion violation
+      - alert: KellyCriterionViolation
+        expr: risk_position_size > risk_kelly_suggested_size * 2
+        for: 0s
+        labels:
+          severity: warning
+          component: risk-management
+        annotations:
+          summary: "Position size exceeds Kelly criterion"
+          description: "Position {{ $value }} is 2x larger than Kelly suggests"
+
+  - name: data_pipeline_alerts
+    interval: 10s
+    rules:
+      # Critical: Data pipeline down
+      - alert: DataPipelineDown
+        expr: up{job="data-pipeline"} == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: data-pipeline
+        annotations:
+          summary: "Data pipeline is down"
+          description: "Data pipeline has been unavailable for 30 seconds"
+
+      # Critical: Stale data
+      - alert: StaleMarketData
+        expr: (time() - data_last_update_timestamp) > 60
+        for: 1m
+        labels:
+          severity: critical
+          component: data-pipeline
+        annotations:
+          summary: "Market data is stale"
+          description: "Last data update was {{ $value }}s ago (threshold: 60s)"
+
+      # Warning: High data ingestion latency
+      - alert: HighDataIngestionLatency
+        expr: histogram_quantile(0.95, rate(data_ingestion_latency_seconds_bucket[5m])) > 5.0
+        for: 5m
+        labels:
+          severity: warning
+          component: data-pipeline
+        annotations:
+          summary: "High data ingestion latency"
+          description: "95th percentile latency is {{ $value }}s"
+
+      # Critical: WebSocket disconnected
+      - alert: WebSocketDisconnected
+        expr: data_websocket_connected == 0
+        for: 30s
+        labels:
+          severity: critical
+          component: data-pipeline
+        annotations:
+          summary: "Market data WebSocket disconnected"
+          description: "WebSocket has been disconnected for 30 seconds"
+
+      # Warning: High message drop rate
+      - alert: HighMessageDropRate
+        expr: |
+          (
+            rate(data_messages_dropped_total[5m])
+            /
+            rate(data_messages_received_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: warning
+          component: data-pipeline
+        annotations:
+          summary: "High message drop rate"
+          description: "Dropping {{ $value | humanizePercentage }} of messages"

@@ -1,0 +1,110 @@
+# Relaxed Decision Criteria Configuration
+# ========================================
+# This configuration uses more permissive thresholds to identify
+# potentially profitable strategies that were rejected by strict criteria
+#
+# Original thresholds (too strict - 0/21 profitable):
+# - KILL: Sharpe < 0.5
+# - ITERATE: Sharpe 0.5-1.2
+# - SCALE: Sharpe > 1.5
+#
+# Relaxed thresholds (experimental):
+# - KILL: Sharpe < 0.0 (only kill if actually losing money)
+# - ITERATE: Sharpe 0.0-0.3
+# - SCALE: Sharpe > 0.3 (much more permissive)
+
+decision_criteria:
+  # Sharpe Ratio thresholds
+  sharpe_ratio:
+    kill_threshold: 0.0      # Was 0.5 - now only kill if negative
+    iterate_threshold: 0.3   # Was 1.2 - now iterate below 0.3
+    scale_threshold: 0.3     # Was 1.5 - now scale above 0.3
+
+  # Win Rate thresholds
+  win_rate:
+    kill_threshold: 0.35     # Was 0.45 - allow lower win rates
+    iterate_threshold: 0.45  # Was 0.55 - iterate in this range
+    scale_threshold: 0.45    # Was 0.60 - scale above 45%
+
+  # Maximum Drawdown thresholds (inverted - lower is better)
+  max_drawdown:
+    kill_threshold: 0.30     # Was 0.20 - tolerate 30% drawdowns
+    iterate_threshold: 0.20  # Was 0.15 - iterate if 20-30%
+    scale_threshold: 0.20    # Was 0.10 - scale if below 20%
+
+  # Minimum number of trades for statistical significance
+  min_trades: 20             # Was 30 - require fewer trades
+
+  # Composite scoring weights (for overall evaluation)
+  weights:
+    sharpe_ratio: 0.40       # Was 0.50 - reduce Sharpe importance
+    win_rate: 0.30           # Was 0.20 - increase win rate importance
+    profit_factor: 0.20      # Was 0.20 - keep same
+    max_drawdown: 0.10       # Was 0.10 - keep same
+
+# Risk tolerance settings
+risk_tolerance:
+  aggressive: true           # Take more risks to find alpha
+  max_position_size: 0.25    # Was 0.20 - allow larger positions
+  stop_loss_multiplier: 1.5  # Was 1.0 - wider stops
+
+# Backtesting parameters
+backtesting:
+  # Use shorter time periods for faster iteration
+  min_backtest_days: 30      # Was 90 - allow shorter tests
+  walk_forward_days: 7       # Was 30 - faster validation
+
+  # Transaction costs
+  commission_bps: 10         # Was 20 - assume lower costs
+  slippage_bps: 5           # Was 10 - assume better execution
+
+# Strategy selection criteria
+strategy_selection:
+  # Top N strategies to promote for further testing
+  top_n: 10                  # Was 5 - test more strategies
+
+  # Minimum improvement over baseline
+  min_improvement_pct: 5     # Was 10 - lower bar for improvement
+
+  # Ensemble requirements
+  min_uncorrelated: 3        # Was 5 - need fewer uncorrelated strategies
+  max_correlation: 0.7       # Was 0.5 - allow more correlation
+
+# Hypothesis testing parameters
+hypothesis_testing:
+  # Statistical significance
+  p_value_threshold: 0.10    # Was 0.05 - less strict significance
+  confidence_level: 0.90     # Was 0.95 - lower confidence requirement
+
+  # Multiple testing correction
+  use_bonferroni: false      # Was true - disable for exploration
+
+  # Bootstrap parameters
+  bootstrap_samples: 500     # Was 1000 - faster testing
+  bootstrap_confidence: 0.90  # Was 0.95 - lower confidence
+
+# Alert thresholds (for monitoring)
+alerts:
+  # Performance alerts
+  daily_loss_threshold: 0.05  # Alert if daily loss > 5%
+  weekly_loss_threshold: 0.10 # Alert if weekly loss > 10%
+
+  # Risk alerts
+  position_concentration: 0.40 # Alert if position > 40% of portfolio
+  correlation_threshold: 0.85  # Alert if strategies too correlated
+
+# Notes
+notes: |
+  This configuration is designed for exploration and discovery phase.
+  The relaxed criteria help identify strategies with potential that
+  might be rejected by overly conservative thresholds.
+
+  Once profitable strategies are identified, they should be:
+  1. Further validated with walk-forward analysis
+  2. Tested with gradually tightening criteria
+  3. Combined into ensemble strategies
+  4. Deployed with appropriate position sizing
+
+  Remember: These relaxed thresholds are for DISCOVERY not PRODUCTION.
+  Production thresholds should be more conservative once profitable
+  strategies are validated.

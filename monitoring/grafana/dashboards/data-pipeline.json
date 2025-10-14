@@ -1,0 +1,416 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "rrr-data-pipeline",
+    "title": "RRR Trading - Data Pipeline",
+    "tags": ["rrr-trading", "data", "pipeline"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "5s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 0},
+        "type": "stat",
+        "title": "WebSocket Status",
+        "targets": [
+          {
+            "expr": "data_websocket_connected",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "textMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "1", "text": "CONNECTED"},
+              {"type": "value", "value": "0", "text": "DISCONNECTED"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 0},
+        "type": "stat",
+        "title": "Messages/sec",
+        "targets": [
+          {
+            "expr": "rate(data_messages_received_total[1m])",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "textMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "ops",
+            "decimals": 2
+          }
+        }
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 0},
+        "type": "stat",
+        "title": "Data Freshness",
+        "targets": [
+          {
+            "expr": "time() - data_last_update_timestamp",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "textMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 10, "color": "yellow"},
+                {"value": 30, "color": "orange"},
+                {"value": 60, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 0},
+        "type": "stat",
+        "title": "Drop Rate",
+        "targets": [
+          {
+            "expr": "(rate(data_messages_dropped_total[5m]) / rate(data_messages_received_total[5m])) * 100",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "textMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "percent",
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "orange"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 10, "w": 12, "x": 0, "y": 6},
+        "type": "graph",
+        "title": "Data Ingestion Rate",
+        "targets": [
+          {
+            "expr": "rate(data_messages_received_total[1m])",
+            "legendFormat": "Received",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(data_messages_processed_total[1m])",
+            "legendFormat": "Processed",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(data_messages_dropped_total[1m])",
+            "legendFormat": "Dropped",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Messages/sec"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 2,
+        "linewidth": 2,
+        "seriesOverrides": [
+          {
+            "alias": "Dropped",
+            "color": "red",
+            "fill": 0
+          }
+        ]
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 10, "w": 12, "x": 12, "y": 6},
+        "type": "graph",
+        "title": "Data Ingestion Latency",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.50, rate(data_ingestion_latency_seconds_bucket[5m]))",
+            "legendFormat": "p50",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.95, rate(data_ingestion_latency_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "B"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(data_ingestion_latency_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "C"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency (seconds)", "min": 0},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "legend": {"show": true, "alignAsTable": true}
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+        "type": "graph",
+        "title": "Price Updates by Symbol",
+        "targets": [
+          {
+            "expr": "rate(data_price_updates_total[1m])",
+            "legendFormat": "{{symbol}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Updates/sec"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+        "type": "graph",
+        "title": "OHLCV Candle Completions",
+        "targets": [
+          {
+            "expr": "rate(data_candle_completions_total{timeframe=\"1m\"}[5m])",
+            "legendFormat": "1m candles",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(data_candle_completions_total{timeframe=\"5m\"}[5m])",
+            "legendFormat": "5m candles",
+            "refId": "B"
+          },
+          {
+            "expr": "rate(data_candle_completions_total{timeframe=\"15m\"}[5m])",
+            "legendFormat": "15m candles",
+            "refId": "C"
+          },
+          {
+            "expr": "rate(data_candle_completions_total{timeframe=\"1h\"}[5m])",
+            "legendFormat": "1h candles",
+            "refId": "D"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Candles/sec"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 8, "x": 0, "y": 24},
+        "type": "graph",
+        "title": "Redis Cache Hit Rate",
+        "targets": [
+          {
+            "expr": "rate(data_cache_hits_total[5m]) / (rate(data_cache_hits_total[5m]) + rate(data_cache_misses_total[5m]))",
+            "legendFormat": "Hit Rate",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percentunit", "label": "Hit Rate", "min": 0, "max": 1},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 2,
+        "linewidth": 2,
+        "thresholds": [
+          {"value": 0.8, "color": "rgba(50, 172, 45, 0.5)", "fill": true}
+        ]
+      },
+      {
+        "id": 10,
+        "gridPos": {"h": 8, "w": 8, "x": 8, "y": 24},
+        "type": "graph",
+        "title": "Order Book Depth",
+        "targets": [
+          {
+            "expr": "data_order_book_depth{side=\"bids\"}",
+            "legendFormat": "{{symbol}} Bids",
+            "refId": "A"
+          },
+          {
+            "expr": "data_order_book_depth{side=\"asks\"}",
+            "legendFormat": "{{symbol}} Asks",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Depth (levels)"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2
+      },
+      {
+        "id": 11,
+        "gridPos": {"h": 8, "w": 8, "x": 16, "y": 24},
+        "type": "graph",
+        "title": "Database Write Latency",
+        "targets": [
+          {
+            "expr": "histogram_quantile(0.95, rate(data_db_write_duration_seconds_bucket[5m]))",
+            "legendFormat": "p95",
+            "refId": "A"
+          },
+          {
+            "expr": "histogram_quantile(0.99, rate(data_db_write_duration_seconds_bucket[5m]))",
+            "legendFormat": "p99",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "s", "label": "Latency (seconds)"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2
+      },
+      {
+        "id": 12,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 32},
+        "type": "graph",
+        "title": "API Rate Limit Status",
+        "targets": [
+          {
+            "expr": "api_rate_limit_remaining{source=\"coinbase\"}",
+            "legendFormat": "Coinbase Remaining",
+            "refId": "A"
+          },
+          {
+            "expr": "api_rate_limit_remaining{source=\"polygon\"}",
+            "legendFormat": "Polygon Remaining",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Requests Remaining"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2,
+        "alert": {
+          "name": "API Rate Limit Low",
+          "conditions": [
+            {
+              "evaluator": {"type": "lt", "params": [100]},
+              "query": {"params": ["A", "1m", "now"]},
+              "type": "query"
+            }
+          ]
+        }
+      },
+      {
+        "id": 13,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 32},
+        "type": "graph",
+        "title": "WebSocket Reconnections",
+        "targets": [
+          {
+            "expr": "rate(data_websocket_reconnections_total[10m])",
+            "legendFormat": "{{source}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "ops", "label": "Reconnections/sec"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 2,
+        "linewidth": 2,
+        "bars": false,
+        "points": true
+      },
+      {
+        "id": 14,
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 40},
+        "type": "table",
+        "title": "Latest Price Feeds",
+        "targets": [
+          {
+            "expr": "data_latest_price",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "includeByName": {
+                "symbol": true,
+                "price": true,
+                "volume_24h": true,
+                "last_update": true,
+                "source": true
+              }
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [{"displayName": "last_update", "desc": true}]
+        }
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m"]
+    }
+  }
+}

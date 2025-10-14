@@ -1,0 +1,370 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rrr-trading
+
+---
+# ConfigMap for environment variables
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: trading-config
+  namespace: rrr-trading
+data:
+  PAPER_TRADING: "true"
+  ENVIRONMENT: "production"
+  LOG_LEVEL: "INFO"
+
+---
+# Secret for sensitive data
+apiVersion: v1
+kind: Secret
+metadata:
+  name: trading-secrets
+  namespace: rrr-trading
+type: Opaque
+stringData:
+  POLYGON_API_KEY: "your-polygon-api-key"
+  DB_PASSWORD: "your-db-password"
+  JWT_SECRET: "your-jwt-secret"
+
+---
+# PostgreSQL StatefulSet
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: postgres
+  namespace: rrr-trading
+spec:
+  serviceName: postgres
+  replicas: 1
+  selector:
+    matchLabels:
+      app: postgres
+  template:
+    metadata:
+      labels:
+        app: postgres
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:15-alpine
+        ports:
+        - containerPort: 5432
+        env:
+        - name: POSTGRES_DB
+          value: trading
+        - name: POSTGRES_USER
+          value: trading_user
+        - name: POSTGRES_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: DB_PASSWORD
+        volumeMounts:
+        - name: postgres-storage
+          mountPath: /var/lib/postgresql/data
+        livenessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - trading_user
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          exec:
+            command:
+            - pg_isready
+            - -U
+            - trading_user
+          initialDelaySeconds: 5
+          periodSeconds: 5
+  volumeClaimTemplates:
+  - metadata:
+      name: postgres-storage
+    spec:
+      accessModes: ["ReadWriteOnce"]
+      resources:
+        requests:
+          storage: 10Gi
+
+---
+# Redis Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis
+  namespace: rrr-trading
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: redis
+  template:
+    metadata:
+      labels:
+        app: redis
+    spec:
+      containers:
+      - name: redis
+        image: redis:7-alpine
+        ports:
+        - containerPort: 6379
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+# WebSocket Server Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: websocket-server
+  namespace: rrr-trading
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: websocket-server
+  template:
+    metadata:
+      labels:
+        app: websocket-server
+    spec:
+      containers:
+      - name: websocket
+        image: rrr-trading/websocket:latest
+        ports:
+        - containerPort: 8000
+        env:
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: POLYGON_API_KEY
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:$(DB_PASSWORD)@postgres:5432/trading"
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        envFrom:
+        - configMapRef:
+            name: trading-config
+        resources:
+          requests:
+            memory: "512Mi"
+            cpu: "500m"
+          limits:
+            memory: "1Gi"
+            cpu: "1000m"
+        livenessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 30
+        readinessProbe:
+          httpGet:
+            path: /health
+            port: 8000
+          initialDelaySeconds: 10
+          periodSeconds: 10
+
+---
+# Trading Engine Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: trading-engine
+  namespace: rrr-trading
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: trading-engine
+  template:
+    metadata:
+      labels:
+        app: trading-engine
+    spec:
+      containers:
+      - name: trading
+        image: rrr-trading/engine:latest
+        env:
+        - name: POLYGON_API_KEY
+          valueFrom:
+            secretKeyRef:
+              name: trading-secrets
+              key: POLYGON_API_KEY
+        - name: DATABASE_URL
+          value: "postgresql://trading_user:$(DB_PASSWORD)@postgres:5432/trading"
+        - name: REDIS_URL
+          value: "redis://redis:6379"
+        - name: WEBSOCKET_URL
+          value: "ws://websocket-service:8000"
+        envFrom:
+        - configMapRef:
+            name: trading-config
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1000m"
+          limits:
+            memory: "2Gi"
+            cpu: "2000m"
+
+---
+# Command Center Frontend Deployment
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: command-center
+  namespace: rrr-trading
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: command-center
+  template:
+    metadata:
+      labels:
+        app: command-center
+    spec:
+      containers:
+      - name: frontend
+        image: rrr-trading/frontend:latest
+        ports:
+        - containerPort: 3000
+        env:
+        - name: NEXT_PUBLIC_API_URL
+          value: "http://websocket-service:8000"
+        - name: NEXT_PUBLIC_WS_URL
+          value: "wss://api.yourdomain.com"
+        resources:
+          requests:
+            memory: "256Mi"
+            cpu: "250m"
+          limits:
+            memory: "512Mi"
+            cpu: "500m"
+
+---
+# Services
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgres
+  namespace: rrr-trading
+spec:
+  ports:
+  - port: 5432
+  selector:
+    app: postgres
+  clusterIP: None
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+  namespace: rrr-trading
+spec:
+  ports:
+  - port: 6379
+  selector:
+    app: redis
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: websocket-service
+  namespace: rrr-trading
+spec:
+  ports:
+  - port: 8000
+  selector:
+    app: websocket-server
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: command-center-service
+  namespace: rrr-trading
+spec:
+  ports:
+  - port: 3000
+  selector:
+    app: command-center
+
+---
+# Ingress for external access
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: trading-ingress
+  namespace: rrr-trading
+  annotations:
+    kubernetes.io/ingress.class: nginx
+    cert-manager.io/cluster-issuer: letsencrypt-prod
+    nginx.ingress.kubernetes.io/websocket-services: websocket-service
+spec:
+  tls:
+  - hosts:
+    - trading.yourdomain.com
+    - api.yourdomain.com
+    secretName: trading-tls
+  rules:
+  - host: trading.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: command-center-service
+            port:
+              number: 3000
+  - host: api.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: websocket-service
+            port:
+              number: 8000
+
+---
+# HorizontalPodAutoscaler for WebSocket Server
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: websocket-hpa
+  namespace: rrr-trading
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: websocket-server
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+  - type: Resource
+    resource:
+      name: cpu
+      target:
+        type: Utilization
+        averageUtilization: 70
+  - type: Resource
+    resource:
+      name: memory
+      target:
+        type: Utilization
+        averageUtilization: 80

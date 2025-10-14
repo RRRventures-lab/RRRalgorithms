@@ -1,0 +1,72 @@
+{
+  "ticker": "X:ADAUSD",
+  "months": 24,
+  "overall_elapsed_minutes": 0.44,
+  "total_bars_fetched": 0,
+  "total_bars_stored": 0,
+  "total_errors": 6,
+  "successful_timeframes": 0,
+  "timeframe_results": [
+    {
+      "timeframe": "1min",
+      "ticker": "X:ADAUSD",
+      "bars_fetched": 0,
+      "bars_stored": 0,
+      "errors": 1,
+      "elapsed_seconds": 0.22,
+      "elapsed_minutes": 0.0,
+      "status": "completed_with_errors"
+    },
+    {
+      "timeframe": "5min",
+      "ticker": "X:ADAUSD",
+      "bars_fetched": 0,
+      "bars_stored": 0,
+      "errors": 1,
+      "elapsed_seconds": 0.24,
+      "elapsed_minutes": 0.0,
+      "status": "completed_with_errors"
+    },
+    {
+      "timeframe": "15min",
+      "ticker": "X:ADAUSD",
+      "bars_fetched": 0,
+      "bars_stored": 0,
+      "errors": 1,
+      "elapsed_seconds": 0.26,
+      "elapsed_minutes": 0.0,
+      "status": "completed_with_errors"
+    },
+    {
+      "timeframe": "1hr",
+      "ticker": "X:ADAUSD",
+      "bars_fetched": 0,
+      "bars_stored": 0,
+      "errors": 1,
+      "elapsed_seconds": 0.22,
+      "elapsed_minutes": 0.0,
+      "status": "completed_with_errors"
+    },
+    {
+      "timeframe": "4hr",
+      "ticker": "X:ADAUSD",
+      "bars_fetched": 0,
+      "bars_stored": 0,
+      "errors": 1,
+      "elapsed_seconds": 0.26,
+      "elapsed_minutes": 0.0,
+      "status": "completed_with_errors"
+    },
+    {
+      "timeframe": "1day",
+      "ticker": "X:ADAUSD",
+      "bars_fetched": 0,
+      "bars_stored": 0,
+      "errors": 1,
+      "elapsed_seconds": 0.28,
+      "elapsed_minutes": 0.0,
+      "status": "completed_with_errors"
+    }
+  ],
+  "completed_at": "2025-10-11T20:20:46.637322"
+}

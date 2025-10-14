@@ -1,0 +1,290 @@
+groups:
+  - name: neural_network_alerts
+    interval: 30s
+    rules:
+      # Critical: Neural network down
+      - alert: NeuralNetworkDown
+        expr: up{job="neural-network"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: neural-network
+        annotations:
+          summary: "Neural Network service is down"
+          description: "Neural Network has been unavailable for 1 minute"
+
+      # Critical: Model inference failures
+      - alert: HighModelInferenceFailureRate
+        expr: |
+          (
+            rate(ml_inference_failures_total[5m])
+            /
+            rate(ml_inference_requests_total[5m])
+          ) > 0.05
+        for: 5m
+        labels:
+          severity: critical
+          component: neural-network
+        annotations:
+          summary: "High model inference failure rate"
+          description: "Inference failure rate is {{ $value | humanizePercentage }}"
+
+      # Warning: Slow model inference
+      - alert: SlowModelInference
+        expr: histogram_quantile(0.95, rate(ml_inference_duration_seconds_bucket[5m])) > 0.5
+        for: 10m
+        labels:
+          severity: warning
+          component: neural-network
+        annotations:
+          summary: "Slow model inference detected"
+          description: "95th percentile inference time is {{ $value }}s (threshold: 0.5s)"
+
+      # Warning: Model confidence declining
+      - alert: LowModelConfidence
+        expr: avg_over_time(ml_prediction_confidence[10m]) < 0.6
+        for: 30m
+        labels:
+          severity: warning
+          component: neural-network
+        annotations:
+          summary: "Model confidence declining"
+          description: "Average model confidence is {{ $value | humanizePercentage }}"
+
+      # Warning: GPU utilization low (wasting resources)
+      - alert: LowGPUUtilization
+        expr: ml_gpu_utilization_percent < 20
+        for: 30m
+        labels:
+          severity: info
+          component: neural-network
+        annotations:
+          summary: "Low GPU utilization"
+          description: "GPU utilization is only {{ $value }}% (consider scaling down)"
+
+      # Critical: GPU out of memory
+      - alert: GPUOutOfMemory
+        expr: ml_gpu_memory_used_percent > 95
+        for: 1m
+        labels:
+          severity: critical
+          component: neural-network
+        annotations:
+          summary: "GPU out of memory"
+          description: "GPU memory usage at {{ $value }}%"
+
+      # Warning: Model drift detected
+      - alert: ModelDriftDetected
+        expr: ml_prediction_accuracy < 0.55
+        for: 1h
+        labels:
+          severity: warning
+          component: neural-network
+        annotations:
+          summary: "Model drift detected"
+          description: "Model accuracy dropped to {{ $value | humanizePercentage }}. Consider retraining."
+
+  - name: system_alerts
+    interval: 30s
+    rules:
+      # Critical: High CPU usage
+      - alert: HighCPUUsage
+        expr: |
+          100 - (avg by (instance) (rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 90
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "CPU usage is {{ $value }}%"
+
+      # Critical: High memory usage
+      - alert: HighMemoryUsage
+        expr: |
+          (
+            (node_memory_MemTotal_bytes - node_memory_MemAvailable_bytes)
+            /
+            node_memory_MemTotal_bytes
+          ) * 100 > 90
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High memory usage on {{ $labels.instance }}"
+          description: "Memory usage is {{ $value }}%"
+
+      # Critical: Disk space low
+      - alert: DiskSpaceLow
+        expr: |
+          (
+            (node_filesystem_avail_bytes{fstype!="tmpfs"} / node_filesystem_size_bytes{fstype!="tmpfs"})
+            * 100
+          ) < 15
+        for: 10m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Low disk space on {{ $labels.instance }}"
+          description: "Only {{ $value }}% disk space remaining"
+
+      # Warning: High disk I/O wait
+      - alert: HighDiskIOWait
+        expr: rate(node_disk_io_time_seconds_total[5m]) > 0.8
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High disk I/O wait on {{ $labels.instance }}"
+          description: "Disk I/O wait time is high"
+
+      # Critical: Container restart loop
+      - alert: ContainerRestartLoop
+        expr: rate(container_restarts_total[15m]) > 0
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Container {{ $labels.name }} is in restart loop"
+          description: "Container has restarted {{ $value }} times in 15 minutes"
+
+      # Critical: Redis down
+      - alert: RedisDown
+        expr: up{job="redis"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Redis is down"
+          description: "Redis cache is unavailable"
+
+      # Warning: Redis memory usage high
+      - alert: RedisHighMemory
+        expr: redis_memory_used_bytes / redis_memory_max_bytes > 0.9
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "Redis memory usage high"
+          description: "Redis is using {{ $value | humanizePercentage }} of max memory"
+
+      # Critical: Database connection pool exhausted
+      - alert: DatabaseConnectionPoolExhausted
+        expr: pg_stat_activity_count >= pg_settings_max_connections * 0.9
+        for: 5m
+        labels:
+          severity: critical
+          component: infrastructure
+        annotations:
+          summary: "Database connection pool near exhaustion"
+          description: "Using {{ $value }} connections (approaching limit)"
+
+  - name: api_integration_alerts
+    interval: 15s
+    rules:
+      # Critical: Coinbase API down
+      - alert: CoinbaseAPIDown
+        expr: api_coinbase_status == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: api-integration
+        annotations:
+          summary: "Coinbase API is down or unreachable"
+          description: "Cannot connect to Coinbase exchange"
+
+      # Critical: Polygon API down
+      - alert: PolygonAPIDown
+        expr: api_polygon_status == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: api-integration
+        annotations:
+          summary: "Polygon.io API is down"
+          description: "Cannot fetch market data from Polygon"
+
+      # Warning: High API error rate
+      - alert: HighAPIErrorRate
+        expr: |
+          (
+            rate(api_requests_failed_total[5m])
+            /
+            rate(api_requests_total[5m])
+          ) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: api-integration
+        annotations:
+          summary: "High API error rate"
+          description: "API error rate is {{ $value | humanizePercentage }}"
+
+      # Critical: API authentication failed
+      - alert: APIAuthenticationFailed
+        expr: api_auth_failures_total > 0
+        for: 0s
+        labels:
+          severity: critical
+          component: api-integration
+        annotations:
+          summary: "API authentication failure"
+          description: "Failed to authenticate with external API. Check credentials."
+
+      # Warning: API latency high
+      - alert: HighAPILatency
+        expr: histogram_quantile(0.95, rate(api_request_duration_seconds_bucket[5m])) > 2.0
+        for: 10m
+        labels:
+          severity: warning
+          component: api-integration
+        annotations:
+          summary: "High API latency"
+          description: "95th percentile API latency is {{ $value }}s"
+
+  - name: monitoring_alerts
+    interval: 60s
+    rules:
+      # Critical: Too many alerts firing
+      - alert: TooManyAlerts
+        expr: count(ALERTS{alertstate="firing"}) > 10
+        for: 5m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Too many alerts firing"
+          description: "{{ $value }} alerts are currently firing. System may be in critical state."
+
+      # Warning: Prometheus scrape failures
+      - alert: PrometheusScrapeFailing
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Prometheus cannot scrape {{ $labels.job }}"
+          description: "Target {{ $labels.instance }} is down or unreachable"
+
+      # Warning: Prometheus storage full
+      - alert: PrometheusStorageFull
+        expr: |
+          (
+            prometheus_tsdb_storage_blocks_bytes
+            /
+            prometheus_tsdb_retention_limit_bytes
+          ) > 0.9
+        for: 30m
+        labels:
+          severity: warning
+          component: monitoring
+        annotations:
+          summary: "Prometheus storage approaching limit"
+          description: "Storage is {{ $value | humanizePercentage }} full"

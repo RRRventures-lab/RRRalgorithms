@@ -1,0 +1,244 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "rrralgos"
+version = "0.1.0"
+description = "Advanced Cryptocurrency Trading Algorithm System"
+readme = "README.md"
+requires-python = ">=3.11"
+license = {text = "Proprietary"}
+authors = [
+    {name = "RRRVentures", email = "dev@rrrventures.com"},
+]
+keywords = ["trading", "cryptocurrency", "neural-network", "algorithmic-trading", "quantum-optimization"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Financial and Insurance Industry",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+# Minimal dependencies for local development
+# For full feature set, install: pip install -r requirements-full.txt
+dependencies = [
+    "python-dotenv>=1.0.0",
+    "pyyaml>=6.0.1",
+    "requests>=2.31.0",
+    "httpx>=0.25.0",
+    "pydantic>=2.5.3",
+    "python-dateutil>=2.8.2",
+    "structlog>=23.2.0",
+    "numpy>=1.26.0",
+    "pandas>=2.1.0",
+]
+
+[project.optional-dependencies]
+# Local development (lightweight, for laptops)
+local = [
+    "rich>=13.7.0",           # Beautiful terminal output
+    "aiohttp>=3.9.1",         # Async HTTP
+    "websockets>=12.0",       # WebSocket support
+]
+
+# Development tools
+dev = [
+    "pytest>=7.4.3",
+    "pytest-asyncio>=0.21.1",
+    "pytest-cov>=4.1.0",
+    "pytest-mock>=3.12.0",
+    "black>=23.12.1",
+    "ruff>=0.1.8",
+    "mypy>=1.7.1",
+    "ipython>=8.18.0",
+]
+
+# Lightweight ML (scikit-learn only, no deep learning)
+ml-light = [
+    "scikit-learn>=1.3.2",
+    "scipy>=1.11.0",
+    "ta>=0.11.0",              # Technical indicators
+    "joblib>=1.3.2",
+]
+
+# Full neural network/ML dependencies (heavy!)
+ml-full = [
+    "torch>=2.1.0",
+    "transformers>=4.35.0",
+    "scikit-learn>=1.3.2",
+    "matplotlib>=3.8.0",
+    "seaborn>=0.13.0",
+    "plotly>=5.18.0",
+    "mlflow>=2.9.0",
+]
+
+# Quantum optimization (very heavy!)
+quantum = [
+    "qiskit>=0.45.0",
+    "scipy>=1.11.0",
+]
+
+# Production dependencies (cloud/Docker)
+production = [
+    "psycopg2-binary>=2.9.9",  # PostgreSQL
+    "redis>=5.0.0",            # Redis
+    "supabase>=2.3.4",         # Supabase
+    "prometheus-client>=0.19.0", # Monitoring
+]
+
+# All dependencies (for production deployment)
+all = [
+    "rrralgos[local,dev,ml-full,production]",
+]
+
+[project.urls]
+Homepage = "https://github.com/RRRVentures/RRRalgorithms"
+Documentation = "https://github.com/RRRVentures/RRRalgorithms/docs"
+Repository = "https://github.com/RRRVentures/RRRalgorithms"
+
+[tool.setuptools]
+packages = ["src"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = [
+    "-ra",
+    "-q",
+    "--strict-markers",
+    "--cov=src",
+    "--cov-report=html",
+    "--cov-report=term-missing:skip-covered",
+    "--cov-fail-under=60",  # Start at 60%, increase gradually
+]
+testpaths = ["tests"]
+python_files = ["test_*.py", "*_test.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+asyncio_mode = "auto"
+filterwarnings = [
+    "error",
+    "ignore::UserWarning",
+    "ignore::DeprecationWarning",
+]
+markers = [
+    "slow: marks tests as slow (deselect with '-m \"not slow\"')",
+    "integration: integration tests requiring external services",
+    "unit: fast unit tests",
+    "e2e: end-to-end tests",
+]
+
+[tool.coverage.run]
+source = ["src"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+    "*/site-packages/*",
+]
+branch = true
+
+[tool.coverage.report]
+precision = 2
+show_missing = true
+skip_covered = false
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "raise AssertionError",
+    "raise NotImplementedError",
+    "if __name__ == .__main__.:",
+    "if TYPE_CHECKING:",
+    "@abstractmethod",
+]
+
+[tool.black]
+line-length = 100
+target-version = ["py311", "py312"]
+include = '\.pyi?$'
+extend-exclude = '''
+/(
+    \.git
+  | \.venv
+  | venv
+  | \.mypy_cache
+  | \.pytest_cache
+  | \.ruff_cache
+  | __pycache__
+  | build
+  | dist
+  | node_modules
+)/
+'''
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "C",   # flake8-comprehensions
+    "B",   # flake8-bugbear
+    "UP",  # pyupgrade
+    "N",   # pep8-naming
+    "S",   # flake8-bandit (security)
+    "T20", # flake8-print
+    "SIM", # flake8-simplify
+    "RUF", # Ruff-specific rules
+]
+ignore = [
+    "E501",  # line too long (handled by black)
+    "S101",  # use of assert (ok in tests)
+    "S104",  # possible binding to all interfaces
+    "S105",  # possible hardcoded password (false positives)
+    "S106",  # possible hardcoded password in function argument
+    "S107",  # possible hardcoded password in function default
+]
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "node_modules",
+]
+
+[tool.ruff.per-file-ignores]
+"tests/*" = ["S101", "S105", "S106"]  # Allow asserts and test credentials in tests
+"**/test_*.py" = ["S101", "S105", "S106"]
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = false  # Start permissive, tighten later
+disallow_incomplete_defs = false
+check_untyped_defs = true
+no_implicit_optional = true
+warn_redundant_casts = true
+warn_unused_ignores = true
+warn_no_return = true
+strict_equality = true
+ignore_missing_imports = true  # Many packages lack stubs
+
+[[tool.mypy.overrides]]
+module = [
+    "supabase.*",
+    "polygon.*",
+    "streamlit.*",
+    "plotly.*",
+]
+ignore_missing_imports = true
+
+[tool.isort]
+profile = "black"
+line_length = 100
+multi_line_output = 3
+include_trailing_comma = true
+force_grid_wrap = 0
+use_parentheses = true
+ensure_newline_before_comments = true

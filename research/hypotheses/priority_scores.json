@@ -1,0 +1,97 @@
+{
+  "hypotheses": [
+    {
+      "id": "001",
+      "title": "Whale Exchange Deposits Predict Price Drops",
+      "category": "On-Chain",
+      "status": "Research",
+      "score": {
+        "theoretical_soundness": 8,
+        "measurability": 10,
+        "competition": 6,
+        "persistence": 7,
+        "capital_capacity": 8,
+        "base_score": 0.336,
+        "final_score": 268.8,
+        "priority_tier": "LOW"
+      },
+      "data_cost_per_month": 0,
+      "engineering_hours": 16,
+      "backtest_sharpe": 0.0,
+      "backtest_win_rate": 0.0,
+      "test_date": ""
+    },
+    {
+      "id": "002",
+      "title": "Order Book Imbalance Predicts Short-Term Returns",
+      "category": "Microstructure",
+      "status": "Research",
+      "score": {
+        "theoretical_soundness": 9,
+        "measurability": 9,
+        "competition": 5,
+        "persistence": 8,
+        "capital_capacity": 6,
+        "base_score": 0.324,
+        "final_score": 194.4,
+        "priority_tier": "LOW"
+      },
+      "data_cost_per_month": 0,
+      "engineering_hours": 24,
+      "backtest_sharpe": 0.0,
+      "backtest_win_rate": 0.0,
+      "test_date": ""
+    },
+    {
+      "id": "003",
+      "title": "CEX-DEX Price Dislocations Create Arbitrage Opportunities",
+      "category": "Arbitrage",
+      "status": "Research",
+      "score": {
+        "theoretical_soundness": 10,
+        "measurability": 9,
+        "competition": 6,
+        "persistence": 9,
+        "capital_capacity": 9,
+        "base_score": 0.486,
+        "final_score": 437.40000000000003,
+        "priority_tier": "MEDIUM"
+      },
+      "data_cost_per_month": 0,
+      "engineering_hours": 20,
+      "backtest_sharpe": 0.0,
+      "backtest_win_rate": 0.0,
+      "test_date": ""
+    }
+  ],
+  "summary": {
+    "total": 3,
+    "by_category": {
+      "On-Chain": 1,
+      "Microstructure": 1,
+      "Arbitrage": 1,
+      "Sentiment": 0,
+      "Regime-Dependent": 0
+    },
+    "by_status": {
+      "Research": 3,
+      "Testing": 0,
+      "Validated": 0,
+      "Killed": 0,
+      "Production": 0
+    },
+    "by_priority_tier": {
+      "CRITICAL": 0,
+      "HIGH": 0,
+      "MEDIUM": 1,
+      "LOW": 2
+    },
+    "score_stats": {
+      "mean": 300.2,
+      "min": 194.4,
+      "max": 437.40000000000003
+    },
+    "total_data_cost": 0,
+    "total_engineering_hours": 60
+  }
+}

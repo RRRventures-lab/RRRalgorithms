@@ -1,0 +1,131 @@
+# RRRalgorithms Prometheus Configuration
+# Global configuration
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    monitor: 'rrralgos-monitor'
+    environment: 'production'
+
+# Alertmanager configuration
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets:
+            - alertmanager:9093
+
+# Load rules
+rule_files:
+  - "rules/*.yml"
+
+# Scrape configurations
+scrape_configs:
+  # Prometheus itself
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+        labels:
+          component: 'monitoring'
+
+  # Node Exporter (System Metrics)
+  - job_name: 'node'
+    static_configs:
+      - targets: ['node-exporter:9100']
+        labels:
+          component: 'infrastructure'
+
+  # cAdvisor (Container Metrics)
+  - job_name: 'cadvisor'
+    static_configs:
+      - targets: ['cadvisor:8080']
+        labels:
+          component: 'containers'
+
+  # Trading System Metrics
+  - job_name: 'trading_system'
+    static_configs:
+      - targets: ['trading_exporter:8000']
+        labels:
+          component: 'trading'
+    metric_relabel_configs:
+      - source_labels: [__name__]
+        regex: 'trading_.*'
+        target_label: 'subsystem'
+        replacement: 'trading'
+
+  # API Endpoints
+  - job_name: 'api_endpoints'
+    metrics_path: '/metrics'
+    static_configs:
+      - targets: 
+          - 'host.docker.internal:8001' # Data Pipeline API
+          - 'host.docker.internal:8002' # Trading Engine API
+          - 'host.docker.internal:8003' # Risk Management API
+          - 'host.docker.internal:8004' # Neural Network API
+        labels:
+          component: 'api'
+
+  # Database Metrics
+  - job_name: 'postgres'
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+        labels:
+          component: 'database'
+
+  # Blackbox Exporter (HTTP/TCP checks)
+  - job_name: 'blackbox'
+    metrics_path: /probe
+    params:
+      module: [http_2xx]
+    static_configs:
+      - targets:
+          - https://api.polygon.io/v2/status
+          - https://api.perplexity.ai/health
+          - https://api.coinbase.com/api/v3/health
+        labels:
+          component: 'external_apis'
+    relabel_configs:
+      - source_labels: [__address__]
+        target_label: __param_target
+      - source_labels: [__param_target]
+        target_label: instance
+      - target_label: __address__
+        replacement: blackbox-exporter:9115
+
+  # Trading Strategy Metrics
+  - job_name: 'trading_strategies'
+    honor_timestamps: true
+    static_configs:
+      - targets: ['host.docker.internal:8005']
+        labels:
+          component: 'strategies'
+          strategy: 'neural_network'
+      - targets: ['host.docker.internal:8006']
+        labels:
+          component: 'strategies'
+          strategy: 'mean_reversion'
+      - targets: ['host.docker.internal:8007']
+        labels:
+          component: 'strategies'
+          strategy: 'momentum'
+
+  # Market Data Metrics
+  - job_name: 'market_data'
+    scrape_interval: 5s  # More frequent for real-time data
+    static_configs:
+      - targets: ['host.docker.internal:8010']
+        labels:
+          component: 'market_data'
+          source: 'polygon'
+      - targets: ['host.docker.internal:8011']
+        labels:
+          component: 'market_data'
+          source: 'coinbase'
+
+# Remote write configuration for long-term storage
+remote_write:
+  - url: "http://localhost:9201/write"
+    write_relabel_configs:
+      - source_labels: [__name__]
+        regex: '^go_.*'
+        action: drop  # Drop Go runtime metrics for storage efficiency

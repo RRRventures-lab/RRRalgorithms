@@ -1,0 +1,46 @@
+================================================================================
+CHAINLINK (X:LINKUSD) HISTORICAL DATA BACKFILL REPORT
+================================================================================
+Generated: 2025-10-11T20:26:18.867418
+Duration: 0:07:03.540437
+Total Bars: 0
+Total Errors: 150
+
+TIMEFRAME BREAKDOWN:
+--------------------------------------------------------------------------------
+
+1min:
+  Bars Fetched: 1,025,078
+  Bars Stored: 0
+  Errors: 25
+  Duration: 0:02:30.833371
+
+5min:
+  Bars Fetched: 206,901
+  Bars Stored: 0
+  Errors: 25
+  Duration: 0:00:55.793829
+
+15min:
+  Bars Fetched: 69,103
+  Bars Stored: 0
+  Errors: 25
+  Duration: 0:01:04.711758
+
+1hr:
+  Bars Fetched: 17,280
+  Bars Stored: 0
+  Errors: 25
+  Duration: 0:00:57.021746
+
+4hr:
+  Bars Fetched: 4,320
+  Bars Stored: 0
+  Errors: 25
+  Duration: 0:00:39.668415
+
+1day:
+  Bars Fetched: 721
+  Bars Stored: 0
+  Errors: 25
+  Duration: 0:00:30.504918

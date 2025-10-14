@@ -1,0 +1,112 @@
+# Lexar Drive Configuration
+# Portable configuration that works on any Mac with Lexar drive mounted
+# Automatically detects Lexar path and uses relative locations
+
+environment: lexar
+
+# Database configuration (on Lexar for portability)
+database:
+  type: sqlite
+  path: data/database/local.db  # Relative to project root on Lexar
+  timeout: 30.0
+
+# Data pipeline configuration
+data_pipeline:
+  mode: mock  # Start with mock, switch to live when ready
+  historical_data_path: data/historical
+  cache_path: data/cache
+  
+  mock:
+    symbols:
+      - BTC-USD
+      - ETH-USD
+      - SOL-USD
+      - ADA-USD
+      - DOT-USD
+    volatility: 0.02
+    update_interval: 1.0
+
+# Trading configuration
+trading:
+  mode: paper  # Paper trading for safety
+  initial_capital: 10000
+  max_position_size: 0.20  # 20% max per position
+  max_daily_loss: 0.05     # 5% daily loss limit
+  
+  # Risk management
+  risk:
+    max_open_positions: 10
+    stop_loss_pct: 0.02
+    take_profit_pct: 0.04
+
+# Neural network configuration
+neural_network:
+  mode: mock  # Start with mock, upgrade to lightweight or full later
+  model_path: models/production
+  checkpoint_path: models/checkpoints
+
+# Logging configuration (all on Lexar)
+logging:
+  directory: logs
+  level: INFO
+  rotation_size_mb: 100
+  retention_days: 365  # Keep 1 year on Lexar
+  compress_old: true
+  
+  files:
+    trading: logs/trading/trading.log
+    system: logs/system/system.log
+    errors: logs/system/errors.log
+
+# Services configuration
+services:
+  enabled_services:
+    - data_pipeline
+    - trading_engine
+    - risk_management
+    - monitoring
+    - dashboard
+    - telegram_alerts
+
+# Dashboard configuration
+dashboard:
+  port: 8501
+  address: 0.0.0.0  # Accessible from network
+  auto_refresh_seconds: 5
+  theme: dark
+  mobile_optimized: true
+
+# Telegram configuration
+telegram:
+  enabled: true
+  # Token and chat_id in .env.lexar
+  alerts:
+    trade_execution: true
+    daily_summary: true
+    risk_warnings: true
+    system_errors: true
+  daily_summary_time: "08:00"  # 8 AM
+
+# Monitoring configuration
+monitoring:
+  health_check_interval: 300  # 5 minutes
+  alerts:
+    memory_threshold_pct: 80
+    disk_threshold_pct: 90
+    error_rate_threshold: 0.01
+  
+# Performance targets
+performance:
+  target_signal_latency_ms: 100
+  target_order_latency_ms: 50
+  max_startup_time_sec: 5
+
+# Backup configuration (to second 2TB drive when available)
+backup:
+  enabled: true
+  interval_hours: 6
+  backup_path: ../backups  # Will be on second drive when mounted
+  keep_daily: 7
+  keep_weekly: 4
+  keep_monthly: 6
+

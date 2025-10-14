@@ -1,0 +1,149 @@
+name: Code Quality & Linting
+
+on:
+  push:
+    branches: [ main, develop, 'worktrees/**' ]
+  pull_request:
+    branches: [ main, develop ]
+
+jobs:
+  lint-python:
+    name: Python Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install linting tools
+        run: |
+          pip install --upgrade pip
+          pip install black flake8 mypy pylint isort bandit
+
+      - name: Run Black (formatter check)
+        run: |
+          black --check --diff worktrees/*/src/ tests/
+
+      - name: Run isort (import sorting)
+        run: |
+          isort --check-only --diff worktrees/*/src/ tests/
+
+      - name: Run Flake8 (style guide)
+        run: |
+          flake8 worktrees/*/src/ tests/ \
+            --max-line-length=120 \
+            --extend-ignore=E203,E266,E501,W503 \
+            --exclude=.git,__pycache__,.venv,build,dist
+
+      - name: Run MyPy (type checking)
+        continue-on-error: true  # Allow failures initially
+        run: |
+          for dir in worktrees/*/; do
+            if [ -f "$dir/requirements.txt" ]; then
+              pip install -r "$dir/requirements.txt"
+            fi
+          done
+          mypy worktrees/*/src/ --ignore-missing-imports --no-strict-optional
+
+      - name: Run Pylint (code analysis)
+        continue-on-error: true  # Allow failures initially
+        run: |
+          pylint worktrees/*/src/ \
+            --max-line-length=120 \
+            --disable=C0111,C0103,R0913,R0914,R0915 \
+            --exit-zero
+
+      - name: Run Bandit (security check)
+        run: |
+          bandit -r worktrees/*/src/ \
+            -ll \
+            -f json \
+            -o bandit-report.json || true
+
+      - name: Upload Bandit report
+        uses: actions/upload-artifact@v3
+        with:
+          name: bandit-security-report
+          path: bandit-report.json
+
+  lint-docs:
+    name: Documentation Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Check markdown files
+        uses: avto-dev/markdown-lint@v1
+        with:
+          args: '**/*.md'
+          ignore: 'node_modules/**'
+
+      - name: Check for broken links
+        uses: gaurav-nelson/github-action-markdown-link-check@v1
+        with:
+          use-quiet-mode: 'yes'
+          config-file: '.github/markdown-link-check-config.json'
+
+  lint-yaml:
+    name: YAML Linting
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Lint YAML files
+        uses: ibiqlik/action-yamllint@v3
+        with:
+          file_or_dir: .github/workflows/ docker-compose.yml config/
+          config_file: .yamllint.yml
+          strict: true
+
+  code-complexity:
+    name: Code Complexity Analysis
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.11'
+
+      - name: Install radon
+        run: pip install radon
+
+      - name: Cyclomatic Complexity
+        run: |
+          echo "=== Cyclomatic Complexity (should be < 10) ==="
+          radon cc worktrees/*/src/ -a -nb
+
+      - name: Maintainability Index
+        run: |
+          echo "=== Maintainability Index (should be > 20) ==="
+          radon mi worktrees/*/src/ -nb
+
+      - name: Raw Metrics
+        run: |
+          echo "=== Raw Metrics ==="
+          radon raw worktrees/*/src/ -s
+
+  lint-summary:
+    name: Lint Summary
+    runs-on: ubuntu-latest
+    needs: [lint-python, lint-docs, lint-yaml, code-complexity]
+    if: always()
+
+    steps:
+      - name: Check lint results
+        run: |
+          echo "Linting completed"
+          echo "Python: ${{ needs.lint-python.result }}"
+          echo "Docs: ${{ needs.lint-docs.result }}"
+          echo "YAML: ${{ needs.lint-yaml.result }}"
+          echo "Complexity: ${{ needs.code-complexity.result }}"

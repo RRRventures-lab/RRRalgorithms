@@ -1,0 +1,261 @@
+{
+  "dashboard": {
+    "id": null,
+    "uid": "rrr-system-overview",
+    "title": "RRR Trading - System Overview",
+    "tags": ["rrr-trading", "system", "overview"],
+    "timezone": "browser",
+    "schemaVersion": 38,
+    "version": 1,
+    "refresh": "10s",
+    "panels": [
+      {
+        "id": 1,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+        "type": "graph",
+        "title": "Service Health Status",
+        "targets": [
+          {
+            "expr": "up{job=~\"neural-network|data-pipeline|trading-engine|risk-management|backtesting|api-integration|quantum-optimization|monitoring\"}",
+            "legendFormat": "{{job}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "short", "label": "Status (1=Up, 0=Down)", "min": 0, "max": 1},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 2,
+        "linewidth": 2,
+        "steppedLine": true,
+        "thresholds": [
+          {"value": 0.5, "color": "red"}
+        ],
+        "alert": {
+          "name": "Service Down Alert",
+          "conditions": [
+            {
+              "evaluator": {"type": "lt", "params": [1]},
+              "query": {"params": ["A", "5m", "now"]},
+              "type": "query"
+            }
+          ]
+        }
+      },
+      {
+        "id": 2,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+        "type": "graph",
+        "title": "CPU Usage by Service",
+        "targets": [
+          {
+            "expr": "rate(container_cpu_usage_seconds_total{name=~\".*rrr.*\"}[5m]) * 100",
+            "legendFormat": "{{name}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "percent", "label": "CPU %", "min": 0, "max": 100},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2
+      },
+      {
+        "id": 3,
+        "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+        "type": "graph",
+        "title": "Memory Usage by Service",
+        "targets": [
+          {
+            "expr": "container_memory_usage_bytes{name=~\".*rrr.*\"} / 1024 / 1024",
+            "legendFormat": "{{name}}",
+            "refId": "A"
+          }
+        ],
+        "yaxes": [
+          {"format": "mbytes", "label": "Memory (MB)"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 2
+      },
+      {
+        "id": 4,
+        "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+        "type": "graph",
+        "title": "Network Traffic",
+        "targets": [
+          {
+            "expr": "rate(container_network_receive_bytes_total{name=~\".*rrr.*\"}[5m]) / 1024",
+            "legendFormat": "{{name}} RX",
+            "refId": "A"
+          },
+          {
+            "expr": "rate(container_network_transmit_bytes_total{name=~\".*rrr.*\"}[5m]) / 1024",
+            "legendFormat": "{{name}} TX",
+            "refId": "B"
+          }
+        ],
+        "yaxes": [
+          {"format": "KBs", "label": "Network KB/s"},
+          {"format": "short"}
+        ],
+        "lines": true,
+        "fill": 1,
+        "linewidth": 1
+      },
+      {
+        "id": 5,
+        "gridPos": {"h": 6, "w": 6, "x": 0, "y": 16},
+        "type": "stat",
+        "title": "Total Active Alerts",
+        "targets": [
+          {
+            "expr": "count(ALERTS{alertstate=\"firing\"})",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "graphMode": "area",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "green"},
+                {"value": 1, "color": "yellow"},
+                {"value": 5, "color": "orange"},
+                {"value": 10, "color": "red"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 6,
+        "gridPos": {"h": 6, "w": 6, "x": 6, "y": 16},
+        "type": "stat",
+        "title": "Redis Status",
+        "targets": [
+          {
+            "expr": "up{job=\"redis\"}",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "1", "text": "UP"},
+              {"type": "value", "value": "0", "text": "DOWN"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 7,
+        "gridPos": {"h": 6, "w": 6, "x": 12, "y": 16},
+        "type": "stat",
+        "title": "Paper Trading Mode",
+        "targets": [
+          {
+            "expr": "trading_paper_mode_enabled",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "background",
+          "textMode": "value_and_name"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "mappings": [
+              {"type": "value", "value": "1", "text": "ENABLED"},
+              {"type": "value", "value": "0", "text": "DISABLED"}
+            ],
+            "thresholds": {
+              "mode": "absolute",
+              "steps": [
+                {"value": 0, "color": "red"},
+                {"value": 1, "color": "green"}
+              ]
+            }
+          }
+        }
+      },
+      {
+        "id": 8,
+        "gridPos": {"h": 6, "w": 6, "x": 18, "y": 16},
+        "type": "stat",
+        "title": "System Uptime",
+        "targets": [
+          {
+            "expr": "time() - node_boot_time_seconds",
+            "refId": "A"
+          }
+        ],
+        "options": {
+          "colorMode": "value",
+          "textMode": "value"
+        },
+        "fieldConfig": {
+          "defaults": {
+            "unit": "s"
+          }
+        }
+      },
+      {
+        "id": 9,
+        "gridPos": {"h": 8, "w": 24, "x": 0, "y": 22},
+        "type": "table",
+        "title": "Active Alerts",
+        "targets": [
+          {
+            "expr": "ALERTS{alertstate=\"firing\"}",
+            "format": "table",
+            "instant": true,
+            "refId": "A"
+          }
+        ],
+        "transformations": [
+          {
+            "id": "organize",
+            "options": {
+              "includeByName": {
+                "alertname": true,
+                "severity": true,
+                "component": true,
+                "Time": true
+              }
+            }
+          }
+        ],
+        "options": {
+          "showHeader": true,
+          "sortBy": [{"displayName": "severity", "desc": true}]
+        }
+      }
+    ],
+    "time": {"from": "now-1h", "to": "now"},
+    "timepicker": {
+      "refresh_intervals": ["5s", "10s", "30s", "1m", "5m", "15m"]
+    }
+  }
+}

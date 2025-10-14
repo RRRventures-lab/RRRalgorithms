@@ -1,0 +1,60 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		1A1A1A1A1A1A1A1A1A1A1A1A /* TradingCommandApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A1B /* TradingCommandApp.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A1C /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A1D /* ContentView.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A1E /* DashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A1F /* DashboardView.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A20 /* PortfolioView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A21 /* PortfolioView.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A22 /* TradingView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A23 /* TradingView.swift */; };
+		1A1A1A1A1A1A1A1A1A1A1A24 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 1A1A1A1A1A1A1A1A1A1A1A25 /* Assets.xcassets */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXFileReference section */
+		1A1A1A1A1A1A1A1A1A1A1A00 /* TradingCommand.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = TradingCommand.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		1A1A1A1A1A1A1A1A1A1A1A1B /* TradingCommandApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradingCommandApp.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A1A1D /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A1A1F /* DashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DashboardView.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A1A21 /* PortfolioView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortfolioView.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A1A23 /* TradingView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TradingView.swift; sourceTree = "<group>"; };
+		1A1A1A1A1A1A1A1A1A1A1A25 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		1A1A1A1A1A1A1A1A1A1A1A01 = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A1A0B /* TradingCommand */,
+				1A1A1A1A1A1A1A1A1A1A1A0A /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		1A1A1A1A1A1A1A1A1A1A1A0A /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A1A00 /* TradingCommand.app */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		1A1A1A1A1A1A1A1A1A1A1A0B /* TradingCommand */ = {
+			isa = PBXGroup;
+			children = (
+				1A1A1A1A1A1A1A1A1A1A1A1B /* TradingCommandApp.swift */,
+				1A1A1A1A1A1A1A1A1A1A1A1D /* ContentView.swift */,
+				1A1A1A1A1A1A1A1A1A1A1A1F /* DashboardView.swift */,
+				1A1A1A1A1A1A1A1A1A1A1A21 /* PortfolioView.swift */,
+				1A1A1A1A1A1A1A1A1A1A1A23 /* TradingView.swift */,
+				1A1A1A1A1A1A1A1A1A1A1A25 /* Assets.xcassets */,
+			);
+			path = TradingCommand;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+/* End XCProjectFile section */
+}

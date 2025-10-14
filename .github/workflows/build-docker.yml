@@ -1,0 +1,244 @@
+name: Build Docker Images
+
+on:
+  push:
+    branches: [ main, develop ]
+    paths:
+      - 'worktrees/**/Dockerfile'
+      - 'docker-compose.yml'
+      - '.github/workflows/build-docker.yml'
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_PREFIX: ghcr.io/${{ github.repository_owner }}/rrr-trading
+
+jobs:
+  build-neural-network:
+    name: Build Neural Network Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-neural-network
+          tags: |
+            type=ref,event=branch
+            type=ref,event=pr
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix={{branch}}-
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./worktrees/neural-network
+          file: ./worktrees/neural-network/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-data-pipeline:
+    name: Build Data Pipeline Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-data-pipeline
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./worktrees/data-pipeline
+          file: ./worktrees/data-pipeline/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-trading-engine:
+    name: Build Trading Engine Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-trading-engine
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./worktrees/trading-engine
+          file: ./worktrees/trading-engine/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-risk-management:
+    name: Build Risk Management Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-risk-management
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./worktrees/risk-management
+          file: ./worktrees/risk-management/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  build-monitoring:
+    name: Build Monitoring Image
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Extract metadata
+        id: meta
+        uses: docker/metadata-action@v4
+        with:
+          images: ${{ env.IMAGE_PREFIX }}-monitoring
+
+      - name: Build and push
+        uses: docker/build-push-action@v4
+        with:
+          context: ./worktrees/monitoring
+          file: ./worktrees/monitoring/Dockerfile
+          push: ${{ github.event_name != 'pull_request' }}
+          tags: ${{ steps.meta.outputs.tags }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  scan-images:
+    name: Scan Images for Vulnerabilities
+    runs-on: ubuntu-latest
+    needs: [build-neural-network, build-data-pipeline, build-trading-engine, build-risk-management, build-monitoring]
+    if: github.event_name != 'pull_request'
+
+    strategy:
+      matrix:
+        image: [neural-network, data-pipeline, trading-engine, risk-management, monitoring]
+
+    steps:
+      - name: Run Trivy vulnerability scanner
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}-${{ matrix.image }}:${{ github.sha }}
+          format: 'sarif'
+          output: 'trivy-results-${{ matrix.image }}.sarif'
+
+      - name: Upload Trivy results
+        uses: github/codeql-action/upload-sarif@v2
+        with:
+          sarif_file: 'trivy-results-${{ matrix.image }}.sarif'
+          category: 'container-${{ matrix.image }}'
+
+  build-summary:
+    name: Build Summary
+    runs-on: ubuntu-latest
+    needs: [build-neural-network, build-data-pipeline, build-trading-engine, build-risk-management, build-monitoring]
+    if: always()
+
+    steps:
+      - name: Check build results
+        run: |
+          echo "Build completed"
+          echo "Neural Network: ${{ needs.build-neural-network.result }}"
+          echo "Data Pipeline: ${{ needs.build-data-pipeline.result }}"
+          echo "Trading Engine: ${{ needs.build-trading-engine.result }}"
+          echo "Risk Management: ${{ needs.build-risk-management.result }}"
+          echo "Monitoring: ${{ needs.build-monitoring.result }}"

@@ -1,0 +1,50 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key>
+    <string>com.rrrventures.trading</string>
+    
+    <key>ProgramArguments</key>
+    <array>
+        <string>/Volumes/Lexar/RRRVentures/RRRalgorithms/scripts/mac_mini_startup.sh</string>
+    </array>
+    
+    <key>RunAtLoad</key>
+    <true/>
+    
+    <key>KeepAlive</key>
+    <dict>
+        <key>Crashed</key>
+        <true/>
+        <key>SuccessfulExit</key>
+        <false/>
+    </dict>
+    
+    <key>StandardOutPath</key>
+    <string>/Volumes/Lexar/RRRVentures/RRRalgorithms/logs/system/launchd.log</string>
+    
+    <key>StandardErrorPath</key>
+    <string>/Volumes/Lexar/RRRVentures/RRRalgorithms/logs/system/launchd.err</string>
+    
+    <key>WorkingDirectory</key>
+    <string>/Volumes/Lexar/RRRVentures/RRRalgorithms</string>
+    
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key>
+        <string>/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin</string>
+        <key>LEXAR_ROOT</key>
+        <string>/Volumes/Lexar/RRRVentures/RRRalgorithms</string>
+        <key>ENVIRONMENT</key>
+        <string>lexar</string>
+    </dict>
+    
+    <key>ThrottleInterval</key>
+    <integer>60</integer>
+    
+    <key>StartInterval</key>
+    <integer>0</integer>
+</dict>
+</plist>
+

@@ -1,0 +1,171 @@
+groups:
+  - name: trading_system_alerts
+    interval: 30s
+    rules:
+      # Critical Trading Alerts
+      - alert: TradingSystemDown
+        expr: up{job="trading_system"} == 0
+        for: 1m
+        labels:
+          severity: critical
+          component: trading
+        annotations:
+          summary: "Trading system is down"
+          description: "The trading system has been down for more than 1 minute"
+
+      - alert: HighTradingLoss
+        expr: trading_pnl_total < -1000
+        for: 5m
+        labels:
+          severity: critical
+          component: trading
+        annotations:
+          summary: "High trading loss detected"
+          description: "Trading loss exceeds $1000: {{ $value }}"
+
+      - alert: NoMarketDataReceived
+        expr: rate(trading_market_data_received_total[5m]) == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: market_data
+        annotations:
+          summary: "No market data received"
+          description: "No market data has been received for 2 minutes"
+
+      # Performance Alerts
+      - alert: HighLatency
+        expr: histogram_quantile(0.99, trading_order_latency_seconds_bucket) > 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "High order execution latency"
+          description: "99th percentile latency is {{ $value }}s (threshold: 100ms)"
+
+      - alert: LowThroughput
+        expr: rate(trading_orders_processed_total[5m]) < 10
+        for: 10m
+        labels:
+          severity: warning
+          component: performance
+        annotations:
+          summary: "Low order processing throughput"
+          description: "Processing only {{ $value }} orders per second"
+
+      # Risk Management Alerts
+      - alert: PositionLimitExceeded
+        expr: trading_position_size > 10000
+        for: 1m
+        labels:
+          severity: critical
+          component: risk
+        annotations:
+          summary: "Position limit exceeded"
+          description: "Position size {{ $value }} exceeds limit of $10,000"
+
+      - alert: DrawdownExceeded
+        expr: trading_portfolio_drawdown > 0.1
+        for: 5m
+        labels:
+          severity: critical
+          component: risk
+        annotations:
+          summary: "Portfolio drawdown exceeded"
+          description: "Drawdown is {{ $value | humanizePercentage }} (limit: 10%)"
+
+      # Infrastructure Alerts
+      - alert: HighMemoryUsage
+        expr: (1 - (node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes)) > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High memory usage"
+          description: "Memory usage is {{ $value | humanizePercentage }}"
+
+      - alert: HighCPUUsage
+        expr: 100 - (avg(rate(node_cpu_seconds_total{mode="idle"}[5m])) * 100) > 80
+        for: 10m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "High CPU usage"
+          description: "CPU usage is {{ $value }}%"
+
+      - alert: DiskSpaceLow
+        expr: (node_filesystem_avail_bytes{mountpoint="/"} / node_filesystem_size_bytes{mountpoint="/"}) < 0.1
+        for: 5m
+        labels:
+          severity: warning
+          component: infrastructure
+        annotations:
+          summary: "Low disk space"
+          description: "Only {{ $value | humanizePercentage }} disk space remaining"
+
+      # Database Alerts
+      - alert: DatabaseConnectionPoolExhausted
+        expr: trading_db_connections_active / trading_db_connections_max > 0.9
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Database connection pool nearly exhausted"
+          description: "{{ $value | humanizePercentage }} of connections in use"
+
+      - alert: SlowDatabaseQueries
+        expr: histogram_quantile(0.95, trading_db_query_duration_seconds_bucket) > 1
+        for: 5m
+        labels:
+          severity: warning
+          component: database
+        annotations:
+          summary: "Slow database queries"
+          description: "95th percentile query time is {{ $value }}s"
+
+      # External API Alerts
+      - alert: PolygonAPIDown
+        expr: probe_success{job="blackbox", instance="https://api.polygon.io/v2/status"} == 0
+        for: 2m
+        labels:
+          severity: critical
+          component: external_api
+          api: polygon
+        annotations:
+          summary: "Polygon.io API is down"
+          description: "Cannot reach Polygon.io API"
+
+      - alert: APIRateLimitNearLimit
+        expr: trading_api_rate_limit_remaining / trading_api_rate_limit_total < 0.1
+        for: 1m
+        labels:
+          severity: warning
+          component: external_api
+        annotations:
+          summary: "API rate limit nearly exhausted"
+          description: "Only {{ $value | humanizePercentage }} of rate limit remaining"
+
+      # Model Performance Alerts
+      - alert: ModelAccuracyDegraded
+        expr: trading_model_accuracy < 0.6
+        for: 30m
+        labels:
+          severity: warning
+          component: ml_model
+        annotations:
+          summary: "Model accuracy degraded"
+          description: "Model accuracy is {{ $value | humanizePercentage }} (threshold: 60%)"
+
+      - alert: ModelPredictionTimeout
+        expr: histogram_quantile(0.99, trading_model_prediction_duration_seconds_bucket) > 5
+        for: 10m
+        labels:
+          severity: warning
+          component: ml_model
+        annotations:
+          summary: "Model prediction timeout"
+          description: "99th percentile prediction time is {{ $value }}s"

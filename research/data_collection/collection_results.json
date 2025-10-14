@@ -1,0 +1,36 @@
+{
+  "agents": {
+    "Agent 1: BTC High-Freq": {
+      "bars": 130582,
+      "errors": []
+    },
+    "Agent 2: BTC Medium-Freq": {
+      "bars": 1682,
+      "errors": []
+    },
+    "Agent 3: BTC Daily/Weekly": {
+      "bars": 1682,
+      "errors": []
+    },
+    "Agent 4: ETH Hourly": {
+      "bars": 835,
+      "errors": []
+    },
+    "Agent 5: SOL + BNB": {
+      "bars": 833,
+      "errors": []
+    },
+    "Agent 6: ADA + MATIC + AVAX": {
+      "bars": 2666,
+      "errors": []
+    },
+    "Agent 7: DOT + LINK + UNI": {
+      "bars": 2549,
+      "errors": []
+    }
+  },
+  "total_bars": 140829,
+  "total_size_mb": 0,
+  "quality_score": 0.0,
+  "errors": []
+}
