@@ -1,5 +1,5 @@
 from datetime import datetime
-from engine.oms.order_manager import OrderManager
+from src.trading.engine.engine.oms.order_manager import OrderManager
 from unittest.mock import Mock, patch, MagicMock
 import os
 import pytest
@@ -397,7 +397,7 @@ class TestOrderExecution:
         assert failed_order['status'] in ['REJECTED', 'FAILED']
 
 
-class TestOrderDatabase Integration:
+class TestOrderDatabaseIntegration:
     """Test database persistence for orders"""
 
     @pytest.fixture
