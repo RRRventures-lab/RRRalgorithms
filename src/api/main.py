@@ -339,6 +339,264 @@ async def get_system_stats():
     return await system_repo.get_system_stats()
 
 
+# ============================================================================
+# Market Data Endpoints (Live Data from Polygon.io)
+# ============================================================================
+
+@app.get("/api/market/prices")
+async def get_latest_prices(symbols: Optional[str] = Query(default=None)):
+    """
+    Get latest prices for symbols
+
+    Args:
+        symbols: Comma-separated list of symbols (e.g., "BTC-USD,ETH-USD")
+                 If not provided, returns all symbols
+
+    Returns:
+        Latest price data for requested symbols
+    """
+    if not db_client:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    # Parse symbols
+    symbol_list = None
+    if symbols:
+        symbol_list = [s.strip() for s in symbols.split(",")]
+
+    # Query latest market data for each symbol
+    query = """
+        SELECT
+            symbol,
+            timestamp,
+            close as price,
+            volume,
+            high,
+            low,
+            open,
+            vwap
+        FROM market_data
+        WHERE symbol IN (
+            SELECT symbol FROM (
+                SELECT symbol, MAX(timestamp) as max_ts
+                FROM market_data
+                """ + ("WHERE symbol IN ({})".format(",".join(["?" for _ in symbol_list])) if symbol_list else "") + """
+                GROUP BY symbol
+            )
+        )
+        AND timestamp IN (
+            SELECT MAX(timestamp)
+            FROM market_data
+            """ + ("WHERE symbol IN ({})".format(",".join(["?" for _ in symbol_list])) if symbol_list else "") + """
+            GROUP BY symbol
+        )
+        ORDER BY symbol
+    """
+
+    params = tuple(symbol_list + symbol_list) if symbol_list else None
+    results = await db_client.fetch_all(query, params)
+
+    prices = []
+    for row in results:
+        prices.append({
+            "symbol": row["symbol"],
+            "price": round(row["price"], 2),
+            "timestamp": datetime.fromtimestamp(row["timestamp"]).isoformat(),
+            "open": round(row["open"], 2),
+            "high": round(row["high"], 2),
+            "low": round(row["low"], 2),
+            "volume": round(row["volume"], 2),
+            "vwap": round(row["vwap"], 2) if row["vwap"] else None
+        })
+
+    return {
+        "prices": prices,
+        "count": len(prices),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/api/market/ohlcv/{symbol}")
+async def get_ohlcv_data(
+    symbol: str,
+    interval: str = Query(default="1h", regex="^(1m|5m|15m|1h|4h|1d)$"),
+    limit: int = Query(default=100, le=1000)
+):
+    """
+    Get OHLCV (candlestick) data for a symbol
+
+    Args:
+        symbol: Trading symbol (e.g., "BTC-USD")
+        interval: Time interval (1m, 5m, 15m, 1h, 4h, 1d)
+        limit: Number of bars to return (max 1000)
+
+    Returns:
+        OHLCV candlestick data
+    """
+    if not db_client:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    # For now, return 1-minute data (we can add aggregation later)
+    query = """
+        SELECT
+            timestamp,
+            open,
+            high,
+            low,
+            close,
+            volume,
+            vwap,
+            trade_count
+        FROM market_data
+        WHERE symbol = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """
+
+    results = await db_client.fetch_all(query, (symbol, limit))
+
+    candlesticks = []
+    for row in results:
+        candlesticks.append({
+            "timestamp": row["timestamp"],
+            "time": datetime.fromtimestamp(row["timestamp"]).isoformat(),
+            "open": round(row["open"], 2),
+            "high": round(row["high"], 2),
+            "low": round(row["low"], 2),
+            "close": round(row["close"], 2),
+            "volume": round(row["volume"], 2),
+            "vwap": round(row["vwap"], 2) if row["vwap"] else None,
+            "trades": row["trade_count"]
+        })
+
+    # Reverse to get chronological order
+    candlesticks.reverse()
+
+    return {
+        "symbol": symbol,
+        "interval": interval,
+        "data": candlesticks,
+        "count": len(candlesticks),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/api/market/trades/{symbol}")
+async def get_recent_trades(
+    symbol: str,
+    limit: int = Query(default=100, le=1000)
+):
+    """
+    Get recent trades for a symbol
+
+    Args:
+        symbol: Trading symbol (e.g., "BTC-USD")
+        limit: Number of trades to return (max 1000)
+
+    Returns:
+        Recent trade data
+    """
+    if not db_client:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    query = """
+        SELECT
+            timestamp,
+            price,
+            size,
+            side,
+            exchange_id,
+            trade_id
+        FROM trades_data
+        WHERE symbol = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """
+
+    results = await db_client.fetch_all(query, (symbol, limit))
+
+    trades = []
+    for row in results:
+        trades.append({
+            "timestamp": row["timestamp"],
+            "time": datetime.fromtimestamp(row["timestamp"]).isoformat(),
+            "price": round(row["price"], 2),
+            "size": round(row["size"], 6),
+            "side": row["side"],
+            "exchange_id": row["exchange_id"],
+            "trade_id": row["trade_id"],
+            "value": round(row["price"] * row["size"], 2)
+        })
+
+    # Reverse to get chronological order
+    trades.reverse()
+
+    return {
+        "symbol": symbol,
+        "trades": trades,
+        "count": len(trades),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
+@app.get("/api/market/quotes/{symbol}")
+async def get_recent_quotes(
+    symbol: str,
+    limit: int = Query(default=100, le=1000)
+):
+    """
+    Get recent quotes (bid/ask) for a symbol
+
+    Args:
+        symbol: Trading symbol (e.g., "BTC-USD")
+        limit: Number of quotes to return (max 1000)
+
+    Returns:
+        Recent quote data
+    """
+    if not db_client:
+        raise HTTPException(status_code=503, detail="Database not initialized")
+
+    query = """
+        SELECT
+            timestamp,
+            bid_price,
+            bid_size,
+            ask_price,
+            ask_size,
+            exchange_id
+        FROM quotes
+        WHERE symbol = ?
+        ORDER BY timestamp DESC
+        LIMIT ?
+    """
+
+    results = await db_client.fetch_all(query, (symbol, limit))
+
+    quotes = []
+    for row in results:
+        spread = row["ask_price"] - row["bid_price"]
+        quotes.append({
+            "timestamp": row["timestamp"],
+            "time": datetime.fromtimestamp(row["timestamp"]).isoformat(),
+            "bid_price": round(row["bid_price"], 2),
+            "bid_size": round(row["bid_size"], 6),
+            "ask_price": round(row["ask_price"], 2),
+            "ask_size": round(row["ask_size"], 6),
+            "spread": round(spread, 2),
+            "exchange_id": row["exchange_id"]
+        })
+
+    # Reverse to get chronological order
+    quotes.reverse()
+
+    return {
+        "symbol": symbol,
+        "quotes": quotes,
+        "count": len(quotes),
+        "timestamp": datetime.utcnow().isoformat()
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
