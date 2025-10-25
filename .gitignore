@@ -171,3 +171,5 @@ models/
 progress/
 results/
 worktrees/
+config/api-keys/.env.production
+config/api-keys/*.pem

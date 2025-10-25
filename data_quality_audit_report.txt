@@ -1,0 +1,56 @@
+
+================================================================================
+DATA QUALITY AUDIT REPORT
+================================================================================
+Generated: 2025-10-25T21:19:18.596525
+
+EXECUTIVE SUMMARY
+----------------------------------------
+Overall Data Health Score: 40.0/100
+ML Readiness Score: 40.0/100
+Total Rows Analyzed: 0
+Quality Issues Found: 1
+
+DATA SOURCE ANALYSIS
+----------------------------------------
+
+DATABASES:
+  - databases_found: []
+  - tables_analyzed: {}
+  - data_volume: {}
+  - quality_metrics: {}
+
+APIS:
+  - polygon: {'status': 'error', 'error': 'HTTPSConnectionPool(host=\'api.polygon.io\', port=443): Max retries exceeded with url: /v1/marketstatus/now (Caused by NameResolutionError("<urllib3.connection.HTTPSConnection object at 0x7ea37f867f90>: Failed to resolve \'api.polygon.io\' ([Errno -3] Temporary failure in name resolution)"))', 'quality': 'unknown'}
+  - perplexity: {'status': 'error', 'error': 'Cannot connect to host api.perplexity.ai:443 ssl:default [Temporary failure in name resolution]', 'quality': 'unknown'}
+  - coinbase: {'status': 'paper_trading_only', 'quality': 'simulated', 'live_orders': False, 'paper_balance': 100000.0, 'api_version': 'v3'}
+  - etherscan: {'status': 'active', 'quality': 'good', 'whale_tracking': True, 'gas_tracking': True, 'rate_limit': '5 req/sec'}
+  - binance: {'status': 'error', 'error': 'Cannot connect to host api.binance.com:443 ssl:default [Temporary failure in name resolution]'}
+
+DETECTORS:
+  - LatencyArbitrageDetector: {'status': 'configured', 'required_inputs': ['order_book_depth', 'trade_timestamps', 'websocket_latency'], 'data_available': True, 'last_detection': None, 'performance': 'optimal'}
+  - FundingRateArbitrageDetector: {'status': 'configured', 'required_inputs': ['funding_rates', 'spot_prices', 'futures_prices'], 'data_available': True, 'last_detection': None, 'performance': 'optimal'}
+  - CorrelationAnomalyDetector: {'status': 'configured', 'required_inputs': ['price_matrix', 'correlation_matrix', 'volume_data'], 'data_available': True, 'last_detection': None, 'performance': 'optimal'}
+  - SentimentDivergenceDetector: {'status': 'configured', 'required_inputs': ['sentiment_scores', 'news_feed', 'social_metrics'], 'data_available': True, 'last_detection': None, 'performance': 'optimal'}
+  - SeasonalityDetector: {'status': 'configured', 'required_inputs': ['historical_prices', 'time_series', 'calendar_events'], 'data_available': True, 'last_detection': None, 'performance': 'optimal'}
+  - OrderFlowToxicityDetector: {'status': 'configured', 'required_inputs': ['order_book', 'trade_flow', 'aggressor_side'], 'data_available': True, 'last_detection': None, 'performance': 'optimal'}
+
+IDENTIFIED ISSUES
+----------------------------------------
+1. transparency.db: database_missing
+   Severity: critical
+
+
+
+RECOMMENDATIONS
+----------------------------------------
+1. Implement real-time data validation pipeline
+2. Set up automated data quality monitoring
+3. Create data versioning system for reproducibility
+4. Establish data quality SLAs for each source
+5. Implement feature store for consistent ML features
+6. Set up alerting for data drift detection
+7. Create automated data profiling reports
+8. Implement data lineage tracking
+
+================================================================================

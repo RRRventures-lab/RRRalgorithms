@@ -1,17 +1,70 @@
-from logging.audit_logger import get_audit_logger, AuditAction, AuditSeverity
 from pathlib import Path
 from typing import Optional, Dict, Any
 import sys
+import os
 
 """
 Audit Logging Integration for Trading Engine
 Demonstrates how to integrate audit logging into trading operations
 """
 
+# Add monitoring path to import audit logger
+monitoring_path = Path(__file__).parent.parent.parent / "monitoring" / "logging"
+if monitoring_path.exists():
+    sys.path.insert(0, str(monitoring_path))
 
-# Add monitoring worktree to path for audit logger import
-monitoring_path = Path(__file__).parent.parent.parent.parent / "monitoring" / "src"
-sys.path.insert(0, str(monitoring_path))
+try:
+    from audit_logger import get_audit_logger, AuditAction, AuditSeverity
+except ImportError:
+    # Fallback if audit_logger is not available
+    import logging
+    logger = logging.getLogger(__name__)
+
+    class FallbackAuditLogger:
+        """Fallback audit logger when real one is not available"""
+        def __init__(self, *args, **kwargs):
+            self.logger = logging.getLogger("audit")
+
+        def log(self, **kwargs):
+            self.logger.info(f"AUDIT: {kwargs}")
+
+        def log_order(self, **kwargs):
+            self.logger.info(f"ORDER AUDIT: {kwargs}")
+
+        def log_position(self, **kwargs):
+            self.logger.info(f"POSITION AUDIT: {kwargs}")
+
+        def log_risk_event(self, **kwargs):
+            self.logger.warning(f"RISK AUDIT: {kwargs}")
+
+        def log_config_change(self, **kwargs):
+            self.logger.info(f"CONFIG AUDIT: {kwargs}")
+
+        def get_statistics(self):
+            return {"fallback_mode": True}
+
+    class AuditAction:
+        """Fallback AuditAction enum"""
+        SYSTEM_STARTUP = "SYSTEM_STARTUP"
+        SYSTEM_SHUTDOWN = "SYSTEM_SHUTDOWN"
+        ORDER_PLACED = "ORDER_PLACED"
+        ORDER_REJECTED = "ORDER_REJECTED"
+        ORDER_CANCELLED = "ORDER_CANCELLED"
+        POSITION_OPENED = "POSITION_OPENED"
+        POSITION_CLOSED = "POSITION_CLOSED"
+        RISK_LIMIT_BREACHED = "RISK_LIMIT_BREACHED"
+        EMERGENCY_STOP = "EMERGENCY_STOP"
+
+    class AuditSeverity:
+        """Fallback AuditSeverity enum"""
+        INFO = "INFO"
+        WARNING = "WARNING"
+        ERROR = "ERROR"
+        CRITICAL = "CRITICAL"
+
+    def get_audit_logger(*args, **kwargs):
+        """Fallback audit logger factory"""
+        return FallbackAuditLogger(*args, **kwargs)
 
 
 
@@ -27,10 +80,14 @@ class AuditedTradingEngine:
         """Initialize trading engine with audit logging"""
         self.engine_id = engine_id
 
-        # Get audit logger instance
+        # Get audit logger instance with proper path resolution
+        project_root = Path(__file__).parent.parent.parent.parent
+        log_dir = project_root / "logs" / "audit"
+        log_dir.mkdir(parents=True, exist_ok=True)
+
         self.audit_logger = get_audit_logger(
             system_component="trading-engine",
-            fallback_file=f"/Volumes/Lexar/RRRVentures/RRRalgorithms/logs/audit/trading-engine.jsonl"
+            fallback_file=str(log_dir / "trading-engine.jsonl")
         )
 
         # Log system startup
@@ -80,9 +137,49 @@ class AuditedTradingEngine:
         }
 
         try:
-            # TODO: Actual order placement logic here
-            # For now, simulate success
-            success = True
+            # Import Coinbase exchange for actual order placement
+            from exchanges.coinbase_exchange import CoinbaseExchange
+            from security.credentials_manager import get_credentials_manager
+
+            # Get credentials and check trading mode
+            creds_manager = get_credentials_manager()
+            is_paper = creds_manager.is_paper_trading()
+
+            # Initialize exchange
+            exchange = CoinbaseExchange(paper_trading=is_paper)
+
+            # Place order based on order type
+            if order_type.lower() == "market":
+                result = exchange.create_market_order(
+                    product_id=symbol,
+                    side=side.upper(),
+                    size=quantity,
+                    client_order_id=order_id
+                )
+            elif order_type.lower() == "limit":
+                if not price:
+                    raise ValueError("Limit orders require a price")
+                result = exchange.create_limit_order(
+                    product_id=symbol,
+                    side=side.upper(),
+                    size=quantity,
+                    price=price,
+                    client_order_id=order_id
+                )
+            elif order_type.lower() == "stop":
+                if not price:
+                    raise ValueError("Stop orders require a stop price")
+                result = exchange.create_stop_loss_order(
+                    product_id=symbol,
+                    side=side.upper(),
+                    size=quantity,
+                    stop_price=price,
+                    client_order_id=order_id
+                )
+            else:
+                raise ValueError(f"Unsupported order type: {order_type}")
+
+            success = result.get('success', False)
 
             # Log the order placement
             self.audit_logger.log_order(
@@ -124,8 +221,19 @@ class AuditedTradingEngine:
             bool: True if cancelled successfully
         """
         try:
-            # TODO: Actual cancellation logic
-            success = True
+            # Import Coinbase exchange for actual order cancellation
+            from exchanges.coinbase_exchange import CoinbaseExchange
+            from security.credentials_manager import get_credentials_manager
+
+            # Get credentials and check trading mode
+            creds_manager = get_credentials_manager()
+            is_paper = creds_manager.is_paper_trading()
+
+            # Initialize exchange
+            exchange = CoinbaseExchange(paper_trading=is_paper)
+
+            # Cancel the order
+            success = exchange.cancel_order(order_id)
 
             # Log the cancellation
             self.audit_logger.log_order(
@@ -185,8 +293,37 @@ class AuditedTradingEngine:
         }
 
         try:
-            # TODO: Actual position opening logic
-            success = True
+            # Import position manager for actual position management
+            import asyncio
+            from positions.position_manager import PositionManager
+            from security.credentials_manager import get_credentials_manager
+
+            # Get credentials
+            creds_manager = get_credentials_manager()
+            supabase_creds = creds_manager.get_supabase_credentials()
+
+            # Initialize position manager
+            position_mgr = PositionManager(
+                supabase_url=supabase_creds['url'],
+                supabase_key=supabase_creds['key']
+            )
+
+            # Open position in database (need to create a dummy order ID)
+            import uuid
+            order_id = str(uuid.uuid4())
+
+            # Run async operation
+            position = asyncio.run(position_mgr.open_position(
+                symbol=symbol,
+                side=side,
+                quantity=size,
+                entry_price=entry_price,
+                order_id=order_id,
+                strategy_id=None,
+                metadata={"audit_position_id": position_id}
+            ))
+
+            success = position is not None
 
             # Log the position opening
             self.audit_logger.log_position(
@@ -228,7 +365,24 @@ class AuditedTradingEngine:
         Returns:
             dict: Closing details including P&L
         """
-        # TODO: Get position details
+        # Get position details from database
+        import asyncio
+        from positions.position_manager import PositionManager
+        from security.credentials_manager import get_credentials_manager
+
+        # Get credentials
+        creds_manager = get_credentials_manager()
+        supabase_creds = creds_manager.get_supabase_credentials()
+
+        # Initialize position manager
+        position_mgr = PositionManager(
+            supabase_url=supabase_creds['url'],
+            supabase_key=supabase_creds['key']
+        )
+
+        # Get existing position
+        position = asyncio.run(position_mgr.get_position(position_id))
+
         position_details = {
             "position_id": position_id,
             "exit_price": exit_price,
@@ -236,8 +390,23 @@ class AuditedTradingEngine:
         }
 
         try:
-            # TODO: Calculate P&L and close position
-            pnl = 1234.56  # Placeholder
+            # Calculate P&L and close position
+            if position:
+                # Create a dummy order ID for closing
+                import uuid
+                close_order_id = str(uuid.uuid4())
+
+                # Close the position
+                closed_position = asyncio.run(position_mgr.close_position(
+                    position_id=position_id,
+                    exit_price=exit_price,
+                    order_id=close_order_id
+                ))
+
+                pnl = closed_position.get("realized_pnl", 0.0)
+            else:
+                # Position not found, use placeholder
+                pnl = 0.0
 
             position_details["pnl"] = pnl
 

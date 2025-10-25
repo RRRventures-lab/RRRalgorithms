@@ -89,8 +89,9 @@ try:
             print(f'  Current price: ${snapshot.price:,.2f}')
             print(f'  24h change: {snapshot.todaysChangePerc:.2f}%')
             print(f'  24h volume: {snapshot.day.volume:,.0f}')
-    except:
+    except Exception as e:
         # Try different method
+        print(f"  Snapshot failed: {e}")
         ticker = client.get_ticker_details('X:BTCUSD')
         if ticker:
             print(f'  Ticker info retrieved')

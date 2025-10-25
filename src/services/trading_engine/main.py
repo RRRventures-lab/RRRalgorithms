@@ -100,8 +100,53 @@ class TradingEngine:
                     initial_balance=self.initial_capital,
                 )
             else:
-                # TODO: Initialize live exchange connector (Coinbase, Binance, etc.)
-                raise NotImplementedError("Live trading not yet implemented")
+                # Live trading implementation with comprehensive safety checks
+                logger.warning("=" * 70)
+                logger.warning("LIVE TRADING MODE REQUESTED")
+                logger.warning("=" * 70)
+
+                # Import credentials manager for safety validation
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__), "security"))
+                from credentials_manager import get_credentials_manager
+
+                # Get credentials manager
+                creds_manager = get_credentials_manager()
+
+                # CRITICAL: Perform comprehensive safety checks
+                is_safe, warnings = creds_manager.validate_live_trading_safety()
+
+                if not is_safe:
+                    logger.critical("LIVE TRADING SAFETY CHECKS FAILED:")
+                    for warning in warnings:
+                        logger.critical(f"  - {warning}")
+                    logger.critical("=" * 70)
+                    raise RuntimeError(
+                        "Live trading safety validation failed. Please review configuration:\n"
+                        "1. Set PAPER_TRADING=false in config/api-keys/.env.coinbase\n"
+                        "2. Set LIVE_TRADING_ENABLED=true\n"
+                        "3. Set ENVIRONMENT=production\n"
+                        "4. Configure all risk limits (MAX_ORDER_SIZE_USD, etc.)\n"
+                        "5. Ensure Coinbase API credentials are correct\n\n"
+                        "USE PAPER TRADING MODE FOR TESTING: --mode paper"
+                    )
+
+                logger.warning("Safety checks passed - proceeding with live trading")
+                logger.warning("Real money will be used for orders!")
+                logger.warning("=" * 70)
+
+                # Import live exchange connectors
+                sys.path.insert(0, os.path.join(os.path.dirname(__file__), "exchanges"))
+                from coinbase_exchange import CoinbaseExchange
+
+                # Get Coinbase credentials
+                coinbase_creds = creds_manager.get_coinbase_credentials()
+
+                # Initialize Coinbase exchange in LIVE mode
+                self.exchange = CoinbaseExchange(paper_trading=False)
+
+                logger.info("Live Coinbase exchange initialized")
+                logger.info(f"Organization: {coinbase_creds['organization_id']}")
+                logger.info(f"Risk limits: {creds_manager.get_risk_limits()}")
 
             await self.exchange.connect()
             logger.info(f"Exchange connected: {self.exchange.exchange_id}")
@@ -167,8 +212,17 @@ class TradingEngine:
             self.running = False
 
         finally:
-            # Cleanup
+            # Cleanup - properly handle task cancellation
             snapshot_task.cancel()
+            try:
+                # Wait for the task to be cancelled
+                await snapshot_task
+            except asyncio.CancelledError:
+                # This is expected when cancelling a task
+                logger.debug("Snapshot task cancelled successfully")
+            except Exception as e:
+                logger.warning(f"Error during snapshot task cancellation: {e}")
+
             await self.shutdown()
 
     async def _trading_loop_iteration(self):
@@ -261,8 +315,6 @@ class TradingEngine:
 
         except Exception as e:
             logger.error(f"Error during shutdown: {e}", exc_info=True)
-
-    @lru_cache(maxsize=128)
 
     def get_status(self) -> dict:
         """Get current status of the trading engine"""

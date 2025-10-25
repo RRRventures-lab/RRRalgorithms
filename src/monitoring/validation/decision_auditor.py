@@ -460,8 +460,6 @@ class DecisionAuditor:
         # TODO: Implement database logging
         pass
 
-    @lru_cache(maxsize=128)
-
     def get_decision_history(self, decision_id: str) -> List[Dict[str, Any]]:
         """Get complete history for a decision ID"""
         history = []
@@ -474,8 +472,6 @@ class DecisionAuditor:
                         history.append(entry)
 
         return history
-
-    @lru_cache(maxsize=128)
 
     def get_statistics(self) -> Dict[str, Any]:
         """Get audit trail statistics"""

@@ -1,0 +1,10 @@
+# Ignore all sensitive API key files
+*.env
+*.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+secrets/
+credentials/

@@ -93,17 +93,190 @@
   .terminal-scrollbar::-webkit-scrollbar {
     width: 8px;
   }
-  
+
   .terminal-scrollbar::-webkit-scrollbar-track {
     background: #0A0A0A;
   }
-  
+
   .terminal-scrollbar::-webkit-scrollbar-thumb {
     background: #333333;
     border-radius: 4px;
   }
-  
+
   .terminal-scrollbar::-webkit-scrollbar-thumb:hover {
     background: #555555;
   }
+
+  /* Mobile touch optimization */
+  .touch-optimized {
+    -webkit-tap-highlight-color: rgba(0, 255, 65, 0.2);
+    touch-action: manipulation;
+  }
+
+  /* Performance optimization */
+  .gpu-accelerated {
+    transform: translateZ(0);
+    will-change: transform;
+  }
+}
+
+/* Mobile Responsive Styles */
+@media (max-width: 768px) {
+  html, body {
+    font-size: 10px;
+  }
+
+  .terminal-header {
+    font-size: 10px;
+    padding: 0.5rem;
+  }
+
+  .terminal-panel {
+    font-size: 10px;
+  }
+
+  .terminal-panel-header {
+    font-size: 10px;
+    padding: 0.5rem;
+  }
+
+  /* Make grid layout single column on mobile */
+  .react-grid-layout {
+    width: 100% !important;
+  }
+
+  .react-grid-item {
+    position: relative !important;
+    width: 100% !important;
+    transform: none !important;
+  }
+
+  /* Increase touch target sizes */
+  button, .bloomberg-button {
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+  }
+
+  /* Optimize charts for mobile */
+  canvas, svg {
+    max-width: 100%;
+    height: auto !important;
+  }
+
+  /* Hide non-essential elements on small screens */
+  .hide-on-mobile {
+    display: none !important;
+  }
+
+  /* Stack items vertically */
+  .mobile-stack {
+    flex-direction: column !important;
+  }
+
+  /* Full width inputs on mobile */
+  input, select, textarea {
+    font-size: 16px; /* Prevents zoom on iOS */
+  }
+}
+
+/* Tablet Styles */
+@media (min-width: 769px) and (max-width: 1024px) {
+  html, body {
+    font-size: 11px;
+  }
+
+  .react-grid-layout {
+    width: 100% !important;
+  }
+}
+
+/* Dark Mode Enhancements */
+@media (prefers-color-scheme: dark) {
+  :root {
+    color-scheme: dark;
+  }
+}
+
+/* Animations */
+@keyframes blink {
+  0%, 50% { opacity: 1; }
+  51%, 100% { opacity: 0; }
+}
+
+@keyframes data-rain {
+  0% { transform: translateY(0); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 5px rgba(0, 255, 65, 0.5); }
+  50% { box-shadow: 0 0 20px rgba(0, 255, 65, 0.8); }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+    opacity: 0;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+/* Accessibility Improvements */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* Focus Visible for Keyboard Navigation */
+:focus-visible {
+  outline: 2px solid #00FF41;
+  outline-offset: 2px;
+}
+
+/* Print Styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+
+  .terminal-panel {
+    border: 1px solid #333;
+    page-break-inside: avoid;
+  }
+}
+
+/* Loading States */
+.loading-skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0.05) 25%,
+    rgba(255, 255, 255, 0.1) 50%,
+    rgba(255, 255, 255, 0.05) 75%
+  );
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 200% 0;
+  }
+  100% {
+    background-position: -200% 0;
+  }
+}
+
+/* Additional Component Styles */
+.terminal-panel-header {
+  @apply bg-terminal-border border-b border-terminal-border;
+  @apply text-terminal-text font-terminal text-terminal-sm font-bold;
+  @apply flex items-center px-2 py-1.5;
 }

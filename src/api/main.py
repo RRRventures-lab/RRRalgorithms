@@ -6,10 +6,14 @@ FastAPI backend for real-time trading transparency and analytics
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
+from fastapi.responses import PlainTextResponse
 from contextlib import asynccontextmanager
 from typing import List, Optional
 from datetime import datetime, timedelta
 import logging
+
+# Import Prometheus metrics
+from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 
 # Import database client
 from .transparency_db import get_db, close_db, TransparencyDB
@@ -58,17 +62,40 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# CORS middleware - allow all origins for now (restrict in production)
+# CORS middleware - restricted to specific origins for security
+# Configure allowed origins via CORS_ORIGINS environment variable
+from src.security.secrets_manager import get_secrets_manager
+secrets = get_secrets_manager()
+allowed_origins = secrets.get_secret("CORS_ORIGINS", "http://localhost:3000,http://localhost:8501").split(",")
+allowed_origins = [origin.strip() for origin in allowed_origins if origin.strip()]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # TODO: Restrict to specific origins in production
+    allow_origins=allowed_origins,  # Specific origins only - NEVER use "*" in production
     allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
+    allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allow_headers=["Content-Type", "Authorization", "X-Requested-With"],
+    expose_headers=["X-Request-ID", "X-RateLimit-Remaining"],
+    max_age=600  # Cache preflight requests for 10 minutes
 )
 
 # Gzip compression for responses > 1KB
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Security headers middleware
+from src.security.middleware import SecurityHeadersMiddleware, RateLimitMiddleware, AuditLoggingMiddleware
+app.add_middleware(SecurityHeadersMiddleware, enable_hsts=not secrets.is_development())
+
+# Rate limiting middleware
+rate_limit_config = {
+    "requests_per_minute": int(secrets.get_secret("RATE_LIMIT_PER_MINUTE", "60")),
+    "requests_per_hour": int(secrets.get_secret("RATE_LIMIT_PER_HOUR", "1000")),
+    "burst_size": int(secrets.get_secret("RATE_LIMIT_BURST_SIZE", "10"))
+}
+app.add_middleware(RateLimitMiddleware, **rate_limit_config)
+
+# Audit logging middleware
+app.add_middleware(AuditLoggingMiddleware)
 
 
 # ============================================================================
@@ -101,6 +128,12 @@ async def health_check():
             "websocket": "ready"
         }
     }
+
+
+@app.get("/metrics", response_class=PlainTextResponse)
+async def metrics():
+    """Prometheus metrics endpoint"""
+    return generate_latest()
 
 
 # ============================================================================

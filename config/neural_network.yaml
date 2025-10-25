@@ -1,0 +1,282 @@
+# Neural Network Training & Deployment Configuration
+# Configuration for cryptocurrency price prediction models
+
+# Model Architecture
+model:
+  type: "hybrid"  # Options: lstm, transformer, hybrid, memory_augmented
+
+  # LSTM Configuration
+  lstm:
+    hidden_dim: 256
+    num_layers: 3
+    dropout: 0.2
+    bidirectional: true
+    use_attention: true
+
+  # Transformer Configuration
+  transformer:
+    d_model: 512
+    n_heads: 8
+    n_layers: 6
+    dim_feedforward: 2048
+    dropout: 0.1
+
+  # Hybrid Configuration
+  hybrid:
+    lstm_hidden_dim: 256
+    lstm_num_layers: 2
+    transformer_d_model: 512
+    transformer_n_heads: 8
+    transformer_n_layers: 4
+    dim_feedforward: 2048
+    dropout: 0.1
+
+  # Memory Network Configuration
+  memory:
+    memory_size: 1000
+    memory_dim: 512
+    use_lstm: true
+    use_transformer: true
+    n_heads: 8
+    n_layers: 4
+
+# Training Configuration
+training:
+  # Data
+  batch_size: 32
+  seq_len: 100
+  horizons:
+    - "5min"
+    - "15min"
+    - "1hr"
+
+  # Training params
+  max_epochs: 100
+  learning_rate: 0.001
+  weight_decay: 0.0001
+  warmup_ratio: 0.05
+
+  # Optimizer
+  optimizer: "adamw"  # Options: adam, adamw, sgd
+  momentum: 0.9  # For SGD
+
+  # Scheduler
+  scheduler: "cosine"  # Options: cosine, reduce_on_plateau, step, None
+  step_size: 10  # For step scheduler
+  gamma: 0.1  # For step scheduler
+
+  # Loss function
+  loss_type: "focal"  # Options: focal, ce, smooth_ce, trading
+  focal_gamma: 2.0
+  label_smoothing: 0.1
+
+  # Regularization
+  gradient_clip: 1.0
+  dropout: 0.2
+
+  # Early stopping
+  early_stopping_patience: 10
+  val_interval: 1
+
+  # Mixed precision
+  use_amp: true
+
+  # Checkpointing
+  checkpoint_dir: "./checkpoints"
+  save_best_only: false
+
+  # Logging
+  log_interval: 10
+
+# Data Configuration
+data:
+  # Data sources
+  source: "polygon"  # Options: polygon, csv, database
+  symbols:
+    - "X:BTCUSD"
+    - "X:ETHUSD"
+    - "X:LINKUSD"
+
+  # Timeframes
+  timeframes:
+    - "1min"
+    - "5min"
+    - "15min"
+
+  # Preprocessing
+  normalize: true
+  add_technical_indicators: true
+
+  # Splits
+  train_split: 0.7
+  val_split: 0.15
+  test_split: 0.15
+
+  # Data loader
+  num_workers: 4
+  pin_memory: true
+  drop_last: true
+
+# Feature Engineering
+features:
+  # Technical indicators
+  technical_indicators:
+    enabled: true
+    indicators:
+      - "rsi"
+      - "macd"
+      - "bollinger_bands"
+      - "atr"
+      - "ema"
+      - "vwap"
+
+  # Price thresholds for classification
+  thresholds:
+    "5min": 0.002   # 0.2%
+    "15min": 0.005  # 0.5%
+    "1hr": 0.01     # 1.0%
+
+# Deployment Configuration
+deployment:
+  # Inference
+  device: "cuda"  # Options: cuda, cpu, cuda:0, cuda:1, etc.
+  use_amp: true
+  batch_size: 32
+
+  # Model serving
+  host: "0.0.0.0"
+  port: 8080
+  workers: 4
+
+  # Model registry
+  registry_path: "./models"
+  model_version: "v1.0"
+
+  # Caching
+  cache_size: 1000
+  cache_ttl: 300  # seconds
+
+  # Rate limiting
+  max_requests_per_second: 100
+
+  # Monitoring
+  enable_monitoring: true
+  metrics_port: 9090
+
+  # Logging
+  log_level: "INFO"
+  log_file: "./logs/inference.log"
+
+# Monitoring Configuration
+monitoring:
+  # Model monitoring
+  enable_drift_detection: true
+  drift_threshold: 0.1
+  drift_window: 1000
+
+  # Performance monitoring
+  track_latency: true
+  track_accuracy: true
+  track_confidence: true
+
+  # Alerting
+  enable_alerts: true
+  alert_email: "alerts@example.com"
+  slack_webhook: null
+
+  # Metrics to track
+  metrics:
+    - "accuracy"
+    - "precision"
+    - "recall"
+    - "f1"
+    - "latency"
+    - "throughput"
+    - "confidence"
+
+  # Dashboard
+  dashboard_port: 3000
+  refresh_interval: 5  # seconds
+
+# Distributed Training
+distributed:
+  enabled: false
+  backend: "nccl"  # Options: nccl, gloo, mpi
+  world_size: 1
+  rank: 0
+  init_method: "env://"
+
+  # Multi-GPU
+  gpus: [0]  # GPU IDs to use
+
+  # Gradient accumulation
+  accumulation_steps: 1
+
+# Hyperparameter Tuning
+tuning:
+  enabled: false
+  framework: "optuna"  # Options: optuna, ray
+
+  # Optuna config
+  n_trials: 100
+  timeout: null  # seconds
+  direction: "maximize"  # Options: maximize, minimize
+  metric: "accuracy"
+
+  # Search space
+  search_space:
+    learning_rate:
+      type: "loguniform"
+      low: 1e-5
+      high: 1e-2
+
+    batch_size:
+      type: "categorical"
+      choices: [16, 32, 64, 128]
+
+    hidden_dim:
+      type: "categorical"
+      choices: [128, 256, 512]
+
+    n_layers:
+      type: "int"
+      low: 2
+      high: 8
+
+  # Pruning
+  pruning:
+    enabled: true
+    pruner: "median"  # Options: median, successive_halving
+
+  # Database
+  storage: null  # sqlite:///optuna.db for persistent storage
+
+# Paths
+paths:
+  data_dir: "./data"
+  checkpoint_dir: "./checkpoints"
+  log_dir: "./logs"
+  model_registry: "./models"
+  cache_dir: "./cache"
+
+# Experiment Tracking
+experiment:
+  enabled: true
+  backend: "tensorboard"  # Options: tensorboard, wandb, mlflow
+
+  # Wandb config
+  wandb:
+    project: "crypto-trading-ml"
+    entity: null
+    tags: ["neural_network", "price_prediction"]
+
+  # MLflow config
+  mlflow:
+    tracking_uri: "./mlruns"
+    experiment_name: "crypto_prediction"
+
+  # What to track
+  track_metrics: true
+  track_models: true
+  track_artifacts: true
+  track_hyperparameters: true
