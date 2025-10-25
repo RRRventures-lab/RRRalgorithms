@@ -171,3 +171,4 @@ models/
 progress/
 results/
 worktrees/
+data/db/*.db
