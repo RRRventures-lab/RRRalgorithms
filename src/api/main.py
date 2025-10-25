@@ -11,11 +11,14 @@ from typing import List, Optional
 from datetime import datetime, timedelta
 import logging
 
+# Import database client
+from .transparency_db import get_db, close_db, TransparencyDB
+
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Database connection placeholder - will implement proper connection later
+# Database connection status
 database_connected = False
 
 
@@ -25,14 +28,22 @@ async def lifespan(app: FastAPI):
     global database_connected
     # Startup
     logger.info("Initializing transparency dashboard API...")
-    # TODO: Initialize database connection
-    database_connected = True
+    try:
+        # Initialize database connection
+        await get_db()
+        database_connected = True
+        logger.info("Database connected successfully")
+    except Exception as e:
+        logger.error(f"Failed to connect to database: {e}")
+        database_connected = False
+
     logger.info("API initialized successfully")
 
     yield
 
     # Shutdown
     logger.info("Shutting down API...")
+    await close_db()
     database_connected = False
     logger.info("API shutdown complete")
 
@@ -97,26 +108,14 @@ async def health_check():
 # ============================================================================
 
 @app.get("/api/portfolio")
-async def get_portfolio():
+async def get_portfolio(db: TransparencyDB = Depends(get_db)):
     """
     Get current portfolio overview
 
     Returns:
         Portfolio summary with positions, equity, and performance
     """
-    # TODO: Connect to actual database
-    return {
-        "total_equity": 105234.56,
-        "cash_balance": 45234.56,
-        "invested": 60000.00,
-        "total_pnl": 5234.56,
-        "total_pnl_percent": 5.23,
-        "day_pnl": 1234.56,
-        "day_pnl_percent": 1.19,
-        "positions_count": 3,
-        "open_orders": 2,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    return await db.get_portfolio_summary()
 
 
 @app.get("/api/portfolio/positions")
@@ -166,7 +165,8 @@ async def get_positions():
 async def get_trades(
     limit: int = Query(default=50, le=500),
     offset: int = Query(default=0, ge=0),
-    symbol: Optional[str] = None
+    symbol: Optional[str] = None,
+    db: TransparencyDB = Depends(get_db)
 ):
     """
     Get recent trade history
@@ -179,39 +179,7 @@ async def get_trades(
     Returns:
         List of recent trades with execution details
     """
-    # TODO: Connect to actual database
-    return {
-        "trades": [
-            {
-                "id": "trade-001",
-                "timestamp": (datetime.utcnow() - timedelta(minutes=5)).isoformat(),
-                "symbol": "BTC-USD",
-                "side": "buy",
-                "quantity": 0.5,
-                "price": 50000.00,
-                "total_value": 25000.00,
-                "fee": 25.00,
-                "status": "filled",
-                "order_type": "limit"
-            },
-            {
-                "id": "trade-002",
-                "timestamp": (datetime.utcnow() - timedelta(minutes=15)).isoformat(),
-                "symbol": "ETH-USD",
-                "side": "buy",
-                "quantity": 10.0,
-                "price": 3000.00,
-                "total_value": 30000.00,
-                "fee": 30.00,
-                "status": "filled",
-                "order_type": "market"
-            }
-        ],
-        "total_count": 2,
-        "limit": limit,
-        "offset": offset,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    return await db.get_recent_trades(limit=limit, offset=offset, symbol=symbol)
 
 
 # ============================================================================
@@ -220,7 +188,8 @@ async def get_trades(
 
 @app.get("/api/performance")
 async def get_performance(
-    period: str = Query(default="1d", regex="^(1h|4h|1d|7d|30d|all)$")
+    period: str = Query(default="1d", regex="^(1h|4h|1d|7d|30d|all)$"),
+    db: TransparencyDB = Depends(get_db)
 ):
     """
     Get performance metrics for specified period
@@ -231,32 +200,14 @@ async def get_performance(
     Returns:
         Performance metrics including returns, Sharpe ratio, drawdown, etc.
     """
-    # TODO: Connect to actual database and calculate real metrics
-    return {
-        "period": period,
-        "total_return": 5.23,
-        "total_return_percent": 5.23,
-        "sharpe_ratio": 1.85,
-        "sortino_ratio": 2.15,
-        "max_drawdown": -2.45,
-        "max_drawdown_percent": -2.45,
-        "win_rate": 65.5,
-        "profit_factor": 1.82,
-        "total_trades": 145,
-        "winning_trades": 95,
-        "losing_trades": 50,
-        "average_win": 125.50,
-        "average_loss": -75.25,
-        "largest_win": 1500.00,
-        "largest_loss": -450.00,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    return await db.get_performance_metrics(period=period)
 
 
 @app.get("/api/performance/equity-curve")
 async def get_equity_curve(
     period: str = Query(default="7d", regex="^(1d|7d|30d|90d|all)$"),
-    interval: str = Query(default="1h", regex="^(5m|15m|1h|4h|1d)$")
+    interval: str = Query(default="1h", regex="^(5m|15m|1h|4h|1d)$"),
+    db: TransparencyDB = Depends(get_db)
 ):
     """
     Get equity curve data points for charting
@@ -268,29 +219,7 @@ async def get_equity_curve(
     Returns:
         Array of timestamp and equity value pairs
     """
-    # TODO: Connect to actual database
-    # Generate sample data
-    now = datetime.utcnow()
-    data_points = []
-    initial_equity = 100000.00
-
-    for i in range(168):  # 7 days of hourly data
-        timestamp = now - timedelta(hours=168-i)
-        # Simple simulation - add some variation
-        equity = initial_equity + (i * 30) + ((-1 if i % 3 == 0 else 1) * 200)
-        data_points.append({
-            "timestamp": timestamp.isoformat(),
-            "equity": round(equity, 2)
-        })
-
-    return {
-        "period": period,
-        "interval": interval,
-        "data": data_points,
-        "initial_equity": initial_equity,
-        "current_equity": data_points[-1]["equity"] if data_points else initial_equity,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    return await db.get_equity_curve(period=period, interval=interval)
 
 
 # ============================================================================
@@ -300,7 +229,8 @@ async def get_equity_curve(
 @app.get("/api/ai/decisions")
 async def get_ai_decisions(
     limit: int = Query(default=50, le=200),
-    model: Optional[str] = None
+    model: Optional[str] = None,
+    db: TransparencyDB = Depends(get_db)
 ):
     """
     Get recent AI predictions and decisions
@@ -312,99 +242,18 @@ async def get_ai_decisions(
     Returns:
         List of AI decisions with predictions and outcomes
     """
-    # TODO: Connect to actual database
-    return {
-        "decisions": [
-            {
-                "id": "dec-001",
-                "timestamp": (datetime.utcnow() - timedelta(minutes=10)).isoformat(),
-                "model_name": "Transformer-v1",
-                "symbol": "BTC-USD",
-                "prediction": {
-                    "direction": "up",
-                    "confidence": 0.85,
-                    "price_target": 51500.00,
-                    "time_horizon": "4h"
-                },
-                "reasoning": "Strong bullish momentum detected with RSI oversold recovery and MACD crossover. Volume increasing.",
-                "outcome": "pending",
-                "features": {
-                    "rsi_14": 45.2,
-                    "macd": 125.5,
-                    "volume_ratio": 1.85,
-                    "trend_strength": 0.72
-                }
-            },
-            {
-                "id": "dec-002",
-                "timestamp": (datetime.utcnow() - timedelta(minutes=25)).isoformat(),
-                "model_name": "LSTM-v2",
-                "symbol": "ETH-USD",
-                "prediction": {
-                    "direction": "up",
-                    "confidence": 0.78,
-                    "price_target": 3100.00,
-                    "time_horizon": "2h"
-                },
-                "reasoning": "Uptrend continuation pattern. Support holding at 3000, next resistance at 3100.",
-                "outcome": "profitable",
-                "actual_return": 1.67,
-                "features": {
-                    "rsi_14": 58.3,
-                    "macd": 45.2,
-                    "volume_ratio": 1.25,
-                    "trend_strength": 0.65
-                }
-            }
-        ],
-        "total_count": 2,
-        "limit": limit,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    return await db.get_ai_decisions(limit=limit, model=model)
 
 
 @app.get("/api/ai/models")
-async def get_ai_models():
+async def get_ai_models(db: TransparencyDB = Depends(get_db)):
     """
     Get information about active AI models
 
     Returns:
         List of AI models with their performance stats
     """
-    # TODO: Connect to actual database
-    return {
-        "models": [
-            {
-                "name": "Transformer-v1",
-                "type": "neural_network",
-                "status": "active",
-                "accuracy": 62.5,
-                "predictions_today": 45,
-                "avg_confidence": 0.78,
-                "win_rate": 64.2
-            },
-            {
-                "name": "LSTM-v2",
-                "type": "neural_network",
-                "status": "active",
-                "accuracy": 58.3,
-                "predictions_today": 38,
-                "avg_confidence": 0.72,
-                "win_rate": 61.8
-            },
-            {
-                "name": "QAOA-Portfolio",
-                "type": "quantum",
-                "status": "active",
-                "accuracy": 55.0,
-                "predictions_today": 12,
-                "avg_confidence": 0.65,
-                "win_rate": 58.3
-            }
-        ],
-        "total_count": 3,
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    return await db.get_ai_models_performance()
 
 
 # ============================================================================
@@ -503,35 +352,14 @@ async def get_backtest_detail(backtest_id: str):
 # ============================================================================
 
 @app.get("/api/stats")
-async def get_system_stats():
+async def get_system_stats(db: TransparencyDB = Depends(get_db)):
     """
     Get overall system statistics
 
     Returns:
         System-wide stats and metrics
     """
-    # TODO: Connect to actual database
-    return {
-        "trading": {
-            "total_trades_today": 12,
-            "total_volume_today": 125000.00,
-            "active_positions": 3,
-            "open_orders": 2
-        },
-        "ai": {
-            "predictions_today": 95,
-            "active_models": 3,
-            "avg_confidence": 0.75,
-            "accuracy_24h": 62.3
-        },
-        "performance": {
-            "uptime_percent": 99.95,
-            "avg_api_latency_ms": 45,
-            "database_queries_today": 15234,
-            "websocket_connections": 5
-        },
-        "timestamp": datetime.utcnow().isoformat()
-    }
+    return await db.get_system_stats()
 
 
 if __name__ == "__main__":
