@@ -91,11 +91,33 @@ General reports, summaries, and status updates.
 
 ---
 
+## 🎨 Dashboard Design (`dashboard/` - NEW!)
+
+**Production-ready transparency dashboard design and implementation guide.**
+
+**Quick Links**:
+- **[Dashboard Summary](DASHBOARD_SUMMARY.md)** - Executive overview
+- **[Quick Start Guide](DASHBOARD_QUICKSTART.md)** - Get started in 30 minutes
+- **[Complete Design Spec](TRANSPARENCY_DASHBOARD_DESIGN.md)** - Full design (84 KB)
+- **[Architecture Diagrams](ARCHITECTURE_DIAGRAMS.md)** - Visual architecture
+
+**Implementation**:
+- **[FastAPI Backend](api/fastapi_structure.py)** - Reference implementation
+- **[Database Schema](database/transparency_schema.sql)** - SQL migration
+- **[Next.js Frontend](frontend/nextjs_structure.md)** - Component guide
+
+**Purpose**: Build a production-ready trading transparency dashboard with real-time updates, AI insights, and comprehensive analytics.
+
+**Status**: ✅ Design Complete, Ready for Implementation
+
+---
+
 ## API Documentation (`api/`)
 
-*(To be created)*
+Backend API documentation and reference implementations.
 
-API documentation, schemas, and endpoint references.
+**Key Files**:
+- `fastapi_structure.py` - Complete FastAPI backend reference
 
 ---
 
@@ -157,12 +179,19 @@ Reports: 60+ files
   - Downloads: 6 files
   - Audits: 1 file
   - Other: 30+ files
+Dashboard: 5 files (NEW!)
+  - Design spec: 84 KB
+  - Quick start: 12 KB
+  - Backend: 15 KB
+  - Database: 12 KB
+  - Frontend: 25 KB
 ```
 
 ---
 
 ## Recent Updates
 
+- **2025-10-25**: 🎨 Transparency Dashboard design specification complete (150 KB of docs)
 - **2025-10-25**: Documentation reorganized into structured directories
 - **2025-10-12**: Implementation status updates
 - **2025-10-11**: Phase 2B completion documentation
