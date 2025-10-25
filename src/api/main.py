@@ -1,15 +1,17 @@
 """
 RRRalgorithms Transparency Dashboard API
-FastAPI backend for real-time trading transparency and analytics
+FastAPI backend for real-time trading transparency and analytics with WebSocket support
 """
 
 from fastapi import FastAPI, Depends, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from contextlib import asynccontextmanager
-from typing import List, Optional
+from typing import List, Optional, Dict, Set
 from datetime import datetime, timedelta
 import logging
+import asyncio
+import socketio
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
@@ -18,30 +20,54 @@ logger = logging.getLogger(__name__)
 # Database connection placeholder - will implement proper connection later
 database_connected = False
 
+# Socket.IO server for WebSocket connections
+sio = socketio.AsyncServer(
+    async_mode="asgi",
+    cors_allowed_origins="*",
+    logger=True,
+    engineio_logger=False
+)
+
+# Store connected clients and their subscriptions
+connected_clients: Dict[str, Set[str]] = {}
+background_tasks: List[asyncio.Task] = []
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Startup and shutdown events"""
-    global database_connected
+    global database_connected, background_tasks
     # Startup
-    logger.info("Initializing transparency dashboard API...")
+    logger.info("Initializing transparency dashboard API with WebSocket support...")
     # TODO: Initialize database connection
     database_connected = True
-    logger.info("API initialized successfully")
+
+    # Start background tasks for real-time updates
+    background_tasks.append(asyncio.create_task(broadcast_trade_feed()))
+    background_tasks.append(asyncio.create_task(broadcast_portfolio_updates()))
+    background_tasks.append(asyncio.create_task(broadcast_ai_decisions()))
+    background_tasks.append(asyncio.create_task(broadcast_performance_metrics()))
+
+    logger.info("API initialized successfully with WebSocket streaming")
 
     yield
 
     # Shutdown
     logger.info("Shutting down API...")
     database_connected = False
+
+    # Cancel background tasks
+    for task in background_tasks:
+        task.cancel()
+
     logger.info("API shutdown complete")
 
 
 # Create FastAPI app
 app = FastAPI(
     title="RRRalgorithms Transparency API",
-    description="Real-time trading transparency and analytics API - Production Ready",
-    version="1.0.0",
+    description="Real-time trading transparency and analytics API with WebSocket support",
+    version="2.0.0",
     docs_url="/docs",
     redoc_url="/redoc",
     lifespan=lifespan
@@ -58,6 +84,13 @@ app.add_middleware(
 
 # Gzip compression for responses > 1KB
 app.add_middleware(GZipMiddleware, minimum_size=1000)
+
+# Mount Socket.IO app
+socket_app = socketio.ASGIApp(
+    socketio_server=sio,
+    other_asgi_app=app,
+    socketio_path="/socket.io"
+)
 
 
 # ============================================================================
@@ -534,6 +567,191 @@ async def get_system_stats():
     }
 
 
+# ============================================================================
+# WebSocket Broadcasting Functions
+# ============================================================================
+
+async def broadcast_trade_feed():
+    """Broadcast live trade feed updates (<1s latency)"""
+    while True:
+        try:
+            # Simulate real-time trade feed (in production, fetch from database)
+            trade_update = {
+                "id": f"trade-{datetime.utcnow().timestamp():.0f}",
+                "timestamp": datetime.utcnow().isoformat(),
+                "symbol": "BTC-USD",
+                "side": "buy",
+                "quantity": 0.01,
+                "price": 51234.56,
+                "total_value": 512.35,
+                "fee": 0.51,
+                "status": "filled",
+                "type": "market"
+            }
+
+            await sio.emit("trade_feed", trade_update)
+            await asyncio.sleep(0.5)  # 500ms updates for <1s latency
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Trade feed broadcast error: {e}")
+            await asyncio.sleep(5)
+
+
+async def broadcast_portfolio_updates():
+    """Broadcast portfolio updates with <1s latency"""
+    while True:
+        try:
+            # Simulate portfolio updates (in production, fetch from database)
+            portfolio_update = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "total_equity": 105234.56 + (datetime.utcnow().second * 10),
+                "cash_balance": 45234.56,
+                "invested": 60000.00,
+                "total_pnl": 5234.56,
+                "total_pnl_percent": 5.23,
+                "day_pnl": 1234.56,
+                "day_pnl_percent": 1.19,
+                "positions_count": 3,
+                "open_orders": 2
+            }
+
+            await sio.emit("portfolio_update", portfolio_update)
+            await asyncio.sleep(0.8)  # 800ms updates for <1s latency
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Portfolio update broadcast error: {e}")
+            await asyncio.sleep(5)
+
+
+async def broadcast_ai_decisions():
+    """Broadcast AI model decisions in real-time"""
+    while True:
+        try:
+            # Simulate AI decision updates (in production, fetch from ML models)
+            if datetime.utcnow().second % 10 == 0:  # Every 10 seconds
+                ai_decision = {
+                    "id": f"dec-{datetime.utcnow().timestamp():.0f}",
+                    "timestamp": datetime.utcnow().isoformat(),
+                    "model_name": "Transformer-v1",
+                    "symbol": "BTC-USD",
+                    "prediction": {
+                        "direction": "up",
+                        "confidence": 0.85,
+                        "price_target": 51500.00,
+                        "time_horizon": "4h"
+                    },
+                    "reasoning": "Strong bullish momentum detected with RSI oversold recovery",
+                    "outcome": "pending"
+                }
+
+                await sio.emit("ai_decision", ai_decision)
+
+            await asyncio.sleep(1)
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"AI decision broadcast error: {e}")
+            await asyncio.sleep(10)
+
+
+async def broadcast_performance_metrics():
+    """Broadcast performance metrics periodically"""
+    while True:
+        try:
+            # Simulate performance metrics (in production, calculate from database)
+            metrics = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "period": "24h",
+                "total_return": 5.23,
+                "sharpe_ratio": 1.85,
+                "max_drawdown": -2.45,
+                "win_rate": 65.5,
+                "profit_factor": 1.82,
+                "total_trades": 145,
+                "api_latency_ms": 33,
+                "websocket_connections": len(connected_clients)
+            }
+
+            await sio.emit("performance_metrics", metrics)
+            await asyncio.sleep(5)  # Update every 5 seconds
+
+        except asyncio.CancelledError:
+            break
+        except Exception as e:
+            logger.error(f"Performance metrics broadcast error: {e}")
+            await asyncio.sleep(10)
+
+
+# ============================================================================
+# Socket.IO Event Handlers
+# ============================================================================
+
+@sio.event
+async def connect(sid, environ):
+    """Handle WebSocket client connection"""
+    connected_clients[sid] = set()
+    logger.info(f"WebSocket client connected: {sid}")
+
+    # Send initial connection message
+    await sio.emit("connected", {
+        "message": "Connected to RRRalgorithms Transparency API",
+        "server_time": datetime.utcnow().isoformat(),
+        "api_version": "2.0.0",
+        "features": ["trade_feed", "portfolio_updates", "ai_decisions", "performance_metrics"]
+    }, room=sid)
+
+
+@sio.event
+async def disconnect(sid):
+    """Handle WebSocket client disconnection"""
+    if sid in connected_clients:
+        del connected_clients[sid]
+        logger.info(f"WebSocket client disconnected: {sid}")
+
+
+@sio.event
+async def subscribe(sid, data):
+    """Handle subscription to specific data streams"""
+    streams = data.get("streams", [])
+    if sid in connected_clients:
+        connected_clients[sid].update(streams)
+        logger.info(f"Client {sid} subscribed to: {streams}")
+
+        await sio.emit("subscription_confirmed", {
+            "streams": streams,
+            "status": "subscribed"
+        }, room=sid)
+
+
+@sio.event
+async def unsubscribe(sid, data):
+    """Handle unsubscription from data streams"""
+    streams = data.get("streams", [])
+    if sid in connected_clients:
+        connected_clients[sid].difference_update(streams)
+        logger.info(f"Client {sid} unsubscribed from: {streams}")
+
+        await sio.emit("subscription_confirmed", {
+            "streams": streams,
+            "status": "unsubscribed"
+        }, room=sid)
+
+
+@sio.event
+async def ping(sid, data):
+    """Handle ping for latency testing"""
+    await sio.emit("pong", {
+        "timestamp": datetime.utcnow().isoformat(),
+        "client_timestamp": data.get("timestamp")
+    }, room=sid)
+
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, log_level="info")
+    # Run the Socket.IO app instead of the FastAPI app directly
+    uvicorn.run(socket_app, host="0.0.0.0", port=8000, log_level="info")
