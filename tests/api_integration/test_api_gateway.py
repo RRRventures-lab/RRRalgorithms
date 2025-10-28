@@ -1,10 +1,11 @@
-from gateway.api_gateway import (
 from unittest.mock import Mock, patch, AsyncMock
 import asyncio
 import os
 import pytest
 import sys
 import time
+
+from src.microservices.api_gateway import APIGateway, RateLimiter
 
 """
 Integration tests for API Gateway
@@ -14,12 +15,8 @@ Integration tests for API Gateway
 # Add parent directory to path
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 
-    APIGateway,
-    RateLimiter,
-    polygon_get,
-    perplexity_post,
-    get_api_usage
-)
+    # Convenience functions not implemented in microservice module in this repo.
+    # Adjust tests to call gateway methods directly where applicable.
 
 
 class TestRateLimiter:

@@ -1,9 +1,23 @@
 from datetime import datetime, timedelta
-from src.validation.ai_validator import (
-from src.validation.hallucination_detector import (
 import numpy as np
 import pandas as pd
 import pytest
+
+from services.monitoring.validation.ai_validator import (
+    AIValidator,
+    DecisionContext,
+    ValidationReport,
+    ValidationStatus,
+    HallucinationReport,
+    HallucinationSeverity,
+)
+
+from services.monitoring.validation.hallucination_detector import (
+    HallucinationDetector,
+    HistoricalContext,
+    DataPoint,
+    HallucinationSeverity as DetectorHallucinationSeverity,
+)
 
 #!/usr/bin/env python3
 """
@@ -19,19 +33,6 @@ Tests the core AI validation system including:
 Author: AI Psychology Team
 Date: 2025-10-11
 """
-
-    AIValidator,
-    DecisionContext,
-    ValidationReport,
-    ValidationStatus,
-    HallucinationReport,
-    HallucinationSeverity
-)
-    HallucinationDetector,
-    HistoricalContext,
-    DataPoint,
-    HallucinationSeverity as DetectorHallucinationSeverity
-)
 
 
 class TestAIValidator:
